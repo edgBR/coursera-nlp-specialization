@@ -1,3 +1,7 @@
+---
+format: gfm
+---
+
 ## Coursera NLP specialization Learning Notes
 
 This repository contains personal notes about the NLP (Natural Language Processing) Specialization of [DeepLearning.AI](https://www.deeplearning.ai/).
