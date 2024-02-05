@@ -1,6 +1,4 @@
----
-format: gfm
----
+
 
 ## Coursera NLP specialization Learning Notes
 
