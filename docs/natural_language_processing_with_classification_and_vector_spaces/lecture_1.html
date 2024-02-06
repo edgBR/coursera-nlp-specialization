@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Logistic Regression</title>
+<title>Sentiment Analysis with Logistic Regression</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -68,8 +68,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="lecture_1_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="lecture_1_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.css">
 
 <script type="text/javascript">
 const typesetMath = (el) => {
@@ -98,17 +112,47 @@ window.Quarto = {
 };
 </script>
 
+<link rel="stylesheet" href="styles.css">
 </head>
 
-<body class="fullcontent">
+<body>
 
-<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
 
+  <ul>
+  <li><a href="#supervised-ml-sentiment-analysis" id="toc-supervised-ml-sentiment-analysis" class="nav-link active" data-scroll-target="#supervised-ml-sentiment-analysis"><span class="header-section-number">1</span> Supervised ML &amp; Sentiment Analysis</a></li>
+  <li><a href="#text-representation." id="toc-text-representation." class="nav-link" data-scroll-target="#text-representation."><span class="header-section-number">2</span> Text Representation.</a>
+  <ul class="collapse">
+  <li><a href="#sparse-representation." id="toc-sparse-representation." class="nav-link" data-scroll-target="#sparse-representation."><span class="header-section-number">2.1</span> Sparse Representation.</a></li>
+  <li><a href="#negative-and-positive-frequencies." id="toc-negative-and-positive-frequencies." class="nav-link" data-scroll-target="#negative-and-positive-frequencies."><span class="header-section-number">2.2</span> Negative and Positive Frequencies.</a></li>
+  <li><a href="#feature-extraction-with-frequencies" id="toc-feature-extraction-with-frequencies" class="nav-link" data-scroll-target="#feature-extraction-with-frequencies"><span class="header-section-number">2.3</span> Feature extraction with Frequencies</a></li>
+  <li><a href="#preprocessing-techniques." id="toc-preprocessing-techniques." class="nav-link" data-scroll-target="#preprocessing-techniques."><span class="header-section-number">2.4</span> Preprocessing techniques.</a>
+  <ul class="collapse">
+  <li><a href="#hyperlink-cleaning" id="toc-hyperlink-cleaning" class="nav-link" data-scroll-target="#hyperlink-cleaning"><span class="header-section-number">2.4.1</span> HyperLink Cleaning</a></li>
+  <li><a href="#tokenization" id="toc-tokenization" class="nav-link" data-scroll-target="#tokenization"><span class="header-section-number">2.4.2</span> Tokenization</a></li>
+  <li><a href="#punctuation-and-stopwords" id="toc-punctuation-and-stopwords" class="nav-link" data-scroll-target="#punctuation-and-stopwords"><span class="header-section-number">2.4.3</span> Punctuation and Stopwords</a></li>
+  <li><a href="#stemming-and-lowercasing" id="toc-stemming-and-lowercasing" class="nav-link" data-scroll-target="#stemming-and-lowercasing"><span class="header-section-number">2.4.4</span> Stemming and lowercasing</a></li>
+  <li><a href="#lemmatization" id="toc-lemmatization" class="nav-link" data-scroll-target="#lemmatization"><span class="header-section-number">2.4.5</span> Lemmatization</a></li>
+  </ul></li>
+  <li><a href="#summing-all-together" id="toc-summing-all-together" class="nav-link" data-scroll-target="#summing-all-together"><span class="header-section-number">2.5</span> Summing all together</a></li>
+  </ul></li>
+  <li><a href="#logistic-regression-overview" id="toc-logistic-regression-overview" class="nav-link" data-scroll-target="#logistic-regression-overview"><span class="header-section-number">3</span> Logistic Regression Overview</a>
+  <ul class="collapse">
+  <li><a href="#training-logistic-regression." id="toc-training-logistic-regression." class="nav-link" data-scroll-target="#training-logistic-regression."><span class="header-section-number">3.1</span> Training logistic regression.</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+</div>
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Logistic Regression</h1>
+<h1 class="title">Sentiment Analysis with Logistic Regression</h1>
 </div>
 
 
@@ -125,9 +169,9 @@ window.Quarto = {
 </header>
 
 
-<section id="supervised-ml-sentiment-analysis" class="level1">
-<h1>Supervised ML &amp; Sentiment Analysis</h1>
-<p>In supervised machine learning, you usually have an input <span class="math inline">\(X\)</span>, which goes into your prediction function to get your <span class="math inline">\(\hat{Y}\)</span> You can then compare your prediction with the true value <span class="math inline">\(Y\)</span>. This gives you your cost which you use to update the parameters The following image, summarizes the process.</p>
+<section id="supervised-ml-sentiment-analysis" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Supervised ML &amp; Sentiment Analysis</h1>
+<p>In supervised machine learning, you usually have an input <span class="math inline">X</span>, which goes into your prediction function to get your <span class="math inline">\hat{Y}</span> You can then compare your prediction with the true value <span class="math inline">Y</span>. This gives you your cost which you use to update the parameters The following image, summarizes the process.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="images/supervised-learning.png" class="img-fluid figure-img"></p>
@@ -143,18 +187,18 @@ window.Quarto = {
 </div>
 <p>Note that in this case, you either classify 1, for a positive sentiment, or 0, for a negative sentiment.</p>
 </section>
-<section id="text-representation." class="level1">
-<h1>Text Representation.</h1>
-<section id="sparse-representation." class="level2">
-<h2 class="anchored" data-anchor-id="sparse-representation.">Sparse Representation.</h2>
+<section id="text-representation." class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Text Representation.</h1>
+<section id="sparse-representation." class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="sparse-representation."><span class="header-section-number">2.1</span> Sparse Representation.</h2>
 <p>Given a set of tweets:</p>
-<div id="344e3323" class="cell" data-execution_count="1">
+<div id="f1f0d859" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>tweets <span class="op">=</span> [<span class="st">'This dog is amazing but I prefer a corgi'</span>,</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="st">'Donald Trump hair-dresser should be in jail'</span>,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="st">'Roses are red, the sky is blue and machine learning is not a black box'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>A vocabulary <span class="math inline">\(V\)</span> will be formed by all the different words available in the tweet list. Lets imagine that our vocabulary is just composed of the unique words of our first tweet. In this case we could encode the second tweet as follows:</p>
-<div id="b7551d3f" class="cell" data-execution_count="2">
+<p>A vocabulary <span class="math inline">V</span> will be formed by all the different words available in the tweet list. Lets imagine that our vocabulary is just composed of the unique words of our first tweet. In this case we could encode the second tweet as follows:</p>
+<div id="e75a4da1" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>sparse_vector <span class="op">=</span> []</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>vocabulary <span class="op">=</span> tweets[<span class="dv">0</span>].split(<span class="st">' '</span>)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> tweets[<span class="dv">2</span>].split(<span class="st">' '</span>):</span>
@@ -163,19 +207,19 @@ window.Quarto = {
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        sparse_vector.append(<span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>The resulting vector will be <span class="math inline">\([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0]\)</span> which is a sparse vector as it mostly contain 0s. It is easily seen that this is not scalable as well as not memory efficient. Basically the resulting vectors will have a size of <span class="math inline">\(n=\module{V}\)</span></p>
+<p>The resulting vector will be <span class="math inline">[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0]</span> which is a sparse vector as it mostly contain 0s. It is easily seen that this is not scalable as well as not memory efficient. Basically the resulting vectors will have a size of <span class="math inline">n=|V|</span></p>
 </section>
-<section id="negative-and-positive-frequencies." class="level2">
-<h2 class="anchored" data-anchor-id="negative-and-positive-frequencies.">Negative and Positive Frequencies.</h2>
+<section id="negative-and-positive-frequencies." class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="negative-and-positive-frequencies."><span class="header-section-number">2.2</span> Negative and Positive Frequencies.</h2>
 <p>Let’s imagine that now we have the following tweets:</p>
-<div id="1bcface6" class="cell" data-execution_count="3">
+<div id="a191dc69" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>tweets <span class="op">=</span> [<span class="st">'I am happy because I am learning NLP'</span>,</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="st">'I am happy'</span>,</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="st">'I am sad, I am not learning NLP'</span>,</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="st">'I am sad'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The unique vocabulary can be obtained by:</p>
-<div id="0bdcb939" class="cell" data-execution_count="4">
+<div id="4487ebc7" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>all_text <span class="op">=</span> <span class="st">' '</span>.join(tweets).lower()</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> string</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>all_tweets <span class="op">=</span> all_text.translate(<span class="bu">str</span>.maketrans(<span class="st">''</span>, <span class="st">''</span>, string.punctuation))</span>
@@ -188,11 +232,341 @@ window.Quarto = {
 <span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(unique_words)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>{'am', 'sad', 'not', 'i', 'nlp', 'because', 'happy', 'learning'}</code></pre>
+<pre><code>{'sad', 'nlp', 'i', 'not', 'happy', 'am', 'learning', 'because'}</code></pre>
 </div>
 </div>
 <p>For this particular example of sentiment analysis, you have two classes. One class associated with positive sentiment and the other with negative sentiment. So taking your corpus, you’d have a set of two tweets that belong to the positive class, and the sets of two tweets that belong to the negative class. Let’s take the sets of positive tweets. Now, take a look at your vocabulary. To get the positive frequency in any word in your vocabulary, you will have to count the times as it appears in the positive tweets and viceversa for the negative frequency.</p>
 <p><img src="images/negative-positive-dictionary.PNG" class="img-fluid"></p>
+</section>
+<section id="feature-extraction-with-frequencies" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="feature-extraction-with-frequencies"><span class="header-section-number">2.3</span> Feature extraction with Frequencies</h2>
+<p>Given the representation of the dictionary mentioned above. We can calculate a feature representation vector as follows:</p>
+<div id="073f448a" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>positive_negative_dictionary <span class="op">=</span> {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'vocabulary'</span> : [<span class="st">'I'</span>, <span class="st">'am'</span>, <span class="st">'happy'</span>, <span class="st">'because'</span>, <span class="st">'learning'</span>, <span class="st">'NLP'</span>, <span class="st">'sad'</span>, <span class="st">'not'</span>],</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'posfreq(1)'</span> : [<span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>],</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'negfreq(0)'</span> : [<span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>],</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>sentence <span class="op">=</span> [<span class="st">'I'</span>, <span class="st">'am'</span>, <span class="st">'sad'</span>, <span class="st">'I'</span>, <span class="st">'am'</span>, <span class="st">'not'</span>, <span class="st">'learning'</span>, <span class="st">'NLP'</span>]</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>positions <span class="op">=</span> <span class="bu">set</span>(</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    [positive_negative_dictionary[<span class="st">'vocabulary'</span>].index(word) </span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> word <span class="kw">in</span> sentence])</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>pos_freq_sum <span class="op">=</span> <span class="bu">sum</span>(</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    positive_negative_dictionary[<span class="st">'posfreq(1)'</span>][position] </span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> position <span class="kw">in</span> positions)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>neg_freq_sum <span class="op">=</span> <span class="bu">sum</span>(</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    positive_negative_dictionary[<span class="st">'negfreq(0)'</span>][position] </span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> position <span class="kw">in</span> positions)</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>X_m <span class="op">=</span> [<span class="dv">1</span>, pos_freq_sum, neg_freq_sum]</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>X_m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>[1, 8, 11]</code></pre>
+</div>
+</div>
+</section>
+<section id="preprocessing-techniques." class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="preprocessing-techniques."><span class="header-section-number">2.4</span> Preprocessing techniques.</h2>
+<p>Lets use now a real dataset from the NLTK library. We will be using the Twitter dataset, the sample dataset from NLTK is separated into positive and negative tweets. It contains 5000 positive tweets and 5000 negative tweets exactly. The exact match between these classes is not a coincidence. The intention is to have a balanced dataset. That does not reflect the real distributions of positive and negative classes in live Twitter streams. It is just because balanced datasets simplify the design of most computational methods that are required for sentiment analysis. However, it is better to be aware that this balance of classes is artificial.</p>
+<div id="a7d78860" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> nltk                                <span class="co"># Python library for NLP</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nltk.corpus <span class="im">import</span> twitter_samples    <span class="co"># sample Twitter dataset from NLTK</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt            <span class="co"># library for visualization</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random </span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># downloads sample twitter dataset.</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>nltk.download(<span class="st">'twitter_samples'</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co"># select the set of positive and negative tweets</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>all_positive_tweets <span class="op">=</span> twitter_samples.strings(<span class="st">'positive_tweets.json'</span>)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>all_negative_tweets <span class="op">=</span> twitter_samples.strings(<span class="st">'negative_tweets.json'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[nltk_data] Downloading package twitter_samples to
+[nltk_data]     /home/azureuser/nltk_data...
+[nltk_data]   Package twitter_samples is already up-to-date!</code></pre>
+</div>
+</div>
+<p>We will now get the number of positives and negative tweets:</p>
+<div id="d1645959" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Number of positive tweets: </span><span class="sc">{</span><span class="bu">len</span>(all_positive_tweets)<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Number of negative tweets: </span><span class="sc">{</span><span class="bu">len</span>(all_negative_tweets)<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'The type of all_positive_tweets is: </span><span class="sc">{</span><span class="bu">type</span>(all_positive_tweets)<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'The type of a tweet entry is: </span><span class="sc">{</span><span class="bu">type</span>(all_negative_tweets[<span class="dv">0</span>])<span class="sc">}</span><span class="ss">'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Number of positive tweets: 5000
+Number of negative tweets: 5000
+The type of all_positive_tweets is: &lt;class 'list'&gt;
+The type of a tweet entry is: &lt;class 'str'&gt;</code></pre>
+</div>
+</div>
+<p>Before anything else, we can print a couple of tweets from the dataset to see how they look. Understanding the data is responsible for 80% of the success or failure in data science projects. We can use this time to observe aspects we’d like to consider when preprocessing our data.</p>
+<p>Below, you will print one random positive and one random negative tweet. We have added a color mark at the beginning of the string to further distinguish the two. (Warning: This is taken from a public dataset of real tweets and a very small portion has explicit content.)</p>
+<div id="70ddfacc" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print positive in greeen</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'</span><span class="ch">\033</span><span class="st">[92m'</span> <span class="op">+</span> all_positive_tweets[random.randint(<span class="dv">0</span>,<span class="dv">5000</span>)])</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># print negative in red</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'</span><span class="ch">\033</span><span class="st">[91m'</span> <span class="op">+</span> all_negative_tweets[random.randint(<span class="dv">0</span>,<span class="dv">5000</span>)])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>@sltuan96 there will be next event on September :D
+My last day in Indiana :((((</code></pre>
+</div>
+</div>
+<p>Data preprocessing is one of the critical steps in any machine learning project. It includes cleaning and formatting the data before feeding into a machine learning algorithm. For NLP, the preprocessing steps are comprised of the following tasks:</p>
+<ul>
+<li>Tokenizing the string</li>
+<li>Lowercasing</li>
+<li>Removing stop words and punctuation</li>
+<li>Stemming</li>
+</ul>
+<p>All of this techniques allow us to compress even more the dimension of the vocabulary, achieving faster training due to lower feature vector size.</p>
+<section id="hyperlink-cleaning" class="level3" data-number="2.4.1">
+<h3 data-number="2.4.1" class="anchored" data-anchor-id="hyperlink-cleaning"><span class="header-section-number">2.4.1</span> HyperLink Cleaning</h3>
+<div id="37ef8529" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re                                  <span class="co"># library for regular expression operations</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> string                              <span class="co"># for string operations</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nltk.corpus <span class="im">import</span> stopwords          <span class="co"># module for stop words that come with NLTK</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nltk.stem <span class="im">import</span> PorterStemmer        <span class="co"># module for stemming</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nltk.tokenize <span class="im">import</span> TweetTokenizer   <span class="co"># module for tokenizing strings</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>nltk.download(<span class="st">'stopwords'</span>)</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Our selected sample. Complex enough to exemplify each step</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>tweet <span class="op">=</span> all_positive_tweets[<span class="dv">2277</span>]</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tweet)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>My beautiful sunflowers on a sunny Friday morning off :) #sunflowers #favourites #happy #Friday off… https://t.co/3tfYom0N1i</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[nltk_data] Downloading package stopwords to
+[nltk_data]     /home/azureuser/nltk_data...
+[nltk_data]   Package stopwords is already up-to-date!</code></pre>
+</div>
+</div>
+<p>Since we have a Twitter dataset, we’d like to remove some substrings commonly used on the platform like the hashtag, retweet marks, and hyperlinks. We’ll use the re library to perform regular expression operations on our tweet. We’ll define our search pattern and use the sub() method to remove matches by substituting with an empty character (i.e.&nbsp;’’)</p>
+<div id="f33f4ea5" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'</span><span class="ch">\033</span><span class="st">[92m'</span> <span class="op">+</span> tweet)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'</span><span class="ch">\033</span><span class="st">[94m'</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co"># remove old style retweet text "RT"</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>tweet2 <span class="op">=</span> re.sub(<span class="vs">r'^RT[\s]+'</span>, <span class="st">''</span>, tweet)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co"># remove hyperlinks</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>tweet2 <span class="op">=</span> re.sub(<span class="vs">r'https?://[^\s\n\r]+'</span>, <span class="st">''</span>, tweet2)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="co"># remove hashtags</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co"># only removing the hash # sign from the word</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>tweet2 <span class="op">=</span> re.sub(<span class="vs">r'#'</span>, <span class="st">''</span>, tweet2)</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tweet2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>My beautiful sunflowers on a sunny Friday morning off :) #sunflowers #favourites #happy #Friday off… https://t.co/3tfYom0N1i
+
+My beautiful sunflowers on a sunny Friday morning off :) sunflowers favourites happy Friday off… </code></pre>
+</div>
+</div>
+</section>
+<section id="tokenization" class="level3" data-number="2.4.2">
+<h3 data-number="2.4.2" class="anchored" data-anchor-id="tokenization"><span class="header-section-number">2.4.2</span> Tokenization</h3>
+<div id="6f8b03d5" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'</span><span class="ch">\033</span><span class="st">[92m'</span> <span class="op">+</span> tweet2)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'</span><span class="ch">\033</span><span class="st">[94m'</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co"># instantiate tokenizer class</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>tokenizer <span class="op">=</span> TweetTokenizer(preserve_case<span class="op">=</span><span class="va">False</span>, strip_handles<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>                               reduce_len<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co"># tokenize tweets</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>tweet_tokens <span class="op">=</span> tokenizer.tokenize(tweet2)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Tokenized string:'</span>)</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tweet_tokens)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+My beautiful sunflowers on a sunny Friday morning off :) sunflowers favourites happy Friday off…
+
+
+Tokenized string:
+['my', 'beautiful', 'sunflowers', 'on', 'a', 'sunny', 'friday', 'morning', 'off', ':)', 'sunflowers', 'favourites', 'happy', 'friday', 'off', '…']</code></pre>
+</div>
+</div>
+</section>
+<section id="punctuation-and-stopwords" class="level3" data-number="2.4.3">
+<h3 data-number="2.4.3" class="anchored" data-anchor-id="punctuation-and-stopwords"><span class="header-section-number">2.4.3</span> Punctuation and Stopwords</h3>
+<p>The next step is to remove stop words and punctuation. Stop words are words that don’t add significant meaning to the text. You’ll see the list provided by NLTK when you run the cells below.</p>
+<div id="1fba7e93" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Import the english stop words list from NLTK</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co">#Import the english stop words list from NLTK</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>stopwords_english <span class="op">=</span> stopwords.words(<span class="st">'english'</span>) </span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Stop words</span><span class="ch">\n</span><span class="st">'</span>)</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(stopwords_english)</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'</span><span class="ch">\n</span><span class="st">Punctuation</span><span class="ch">\n</span><span class="st">'</span>)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(string.punctuation)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Stop words
+
+['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', "you're", "you've", "you'll", "you'd", 'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', "she's", 'her', 'hers', 'herself', 'it', "it's", 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which', 'who', 'whom', 'this', 'that', "that'll", 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', "don't", 'should', "should've", 'now', 'd', 'll', 'm', 'o', 're', 've', 'y', 'ain', 'aren', "aren't", 'couldn', "couldn't", 'didn', "didn't", 'doesn', "doesn't", 'hadn', "hadn't", 'hasn', "hasn't", 'haven', "haven't", 'isn', "isn't", 'ma', 'mightn', "mightn't", 'mustn', "mustn't", 'needn', "needn't", 'shan', "shan't", 'shouldn', "shouldn't", 'wasn', "wasn't", 'weren', "weren't", 'won', "won't", 'wouldn', "wouldn't"]
+
+Punctuation
+
+!"#$%&amp;'()*+,-./:;&lt;=&gt;?@[\]^_`{|}~</code></pre>
+</div>
+</div>
+<p>We can see that the stop words list above contains some words that could be important in some contexts. These could be words like i, not, between, because, won, against. You might need to customize the stop words list for some applications. For our exercise, we will use the entire list.</p>
+<p>For the punctuation, we saw earlier that certain groupings like ‘:)’ and ‘…’ should be retained when dealing with tweets because they are used to express emotions. In other contexts, like medical analysis, these should also be removed.</p>
+<p>Now we clean the tokenized tweet:</p>
+<div id="9c32d544" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'</span><span class="ch">\033</span><span class="st">[92m'</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tweet_tokens)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'</span><span class="ch">\033</span><span class="st">[94m'</span>)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>tweets_clean <span class="op">=</span> []</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> word <span class="kw">in</span> tweet_tokens: <span class="co"># Go through every word in your tokens list</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (word <span class="kw">not</span> <span class="kw">in</span> stopwords_english <span class="kw">and</span>  <span class="co"># remove stopwords</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>        word <span class="kw">not</span> <span class="kw">in</span> string.punctuation):  <span class="co"># remove punctuation</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>        tweets_clean.append(word)</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'removed stop words and punctuation:'</span>)</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tweets_clean)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+
+['my', 'beautiful', 'sunflowers', 'on', 'a', 'sunny', 'friday', 'morning', 'off', ':)', 'sunflowers', 'favourites', 'happy', 'friday', 'off', '…']
+
+removed stop words and punctuation:
+['beautiful', 'sunflowers', 'sunny', 'friday', 'morning', ':)', 'sunflowers', 'favourites', 'happy', 'friday', '…']</code></pre>
+</div>
+</div>
+</section>
+<section id="stemming-and-lowercasing" class="level3" data-number="2.4.4">
+<h3 data-number="2.4.4" class="anchored" data-anchor-id="stemming-and-lowercasing"><span class="header-section-number">2.4.4</span> Stemming and lowercasing</h3>
+<p>Stemming is the process of converting a word to its most general form, or stem. This helps in reducing the size of our vocabulary.</p>
+<p>Consider the words:</p>
+<ul>
+<li>learn</li>
+<li>learning</li>
+<li>learned</li>
+<li>learnt</li>
+</ul>
+<p>All these words are stemmed from its common root learn. However, in some cases, the stemming process produces words that are not correct spellings of the root word. For example, happi and sunni. That’s because it chooses the most common stem for related words. For example, we can look at the set of words that comprises the different forms of happy:</p>
+<ul>
+<li>happy</li>
+<li>happiness</li>
+<li>happier</li>
+</ul>
+<p>We can see that the prefix happi is more commonly used. We cannot choose happ because it is the stem of unrelated words like happen.</p>
+<p>NLTK has different modules for stemming and we will be using the PorterStemmer module which uses the Porter Stemming Algorithm. Let’s see how we can use it in the cell below.</p>
+<div id="2412bbbe" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'</span><span class="ch">\033</span><span class="st">[92m'</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tweets_clean)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'</span><span class="ch">\033</span><span class="st">[94m'</span>)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Instantiate stemming class</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>stemmer <span class="op">=</span> PorterStemmer() </span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Create an empty list to store the stems</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>tweets_stem <span class="op">=</span> [] </span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> word <span class="kw">in</span> tweets_clean:</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>    stem_word <span class="op">=</span> stemmer.stem(word)  <span class="co"># stemming word</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>    tweets_stem.append(stem_word)  <span class="co"># append to the list</span></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'stemmed words:'</span>)</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tweets_stem)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+
+['beautiful', 'sunflowers', 'sunny', 'friday', 'morning', ':)', 'sunflowers', 'favourites', 'happy', 'friday', '…']
+
+stemmed words:
+['beauti', 'sunflow', 'sunni', 'friday', 'morn', ':)', 'sunflow', 'favourit', 'happi', 'friday', '…']</code></pre>
+</div>
+</div>
+</section>
+<section id="lemmatization" class="level3" data-number="2.4.5">
+<h3 data-number="2.4.5" class="anchored" data-anchor-id="lemmatization"><span class="header-section-number">2.4.5</span> Lemmatization</h3>
+<p>Another popular library to handle text processing is SpaCy. SpaCy does not have built-in support for stemming but if focuses more in Lemmatization (which is a more sophisticated approach to reduce words to their base form).</p>
+<p>Lemmatization (or less commonly lemmatisation) in linguistics is the process of grouping together the inflected forms of a word so they can be analysed as a single item, identified by the word’s lemma, or dictionary form.[1]</p>
+<p>In computational linguistics, lemmatization is the algorithmic process of determining the lemma of a word based on its intended meaning. Unlike stemming, lemmatization depends on correctly identifying the intended part of speech and meaning of a word in a sentence, as well as within the larger context surrounding that sentence, such as neighbouring sentences or even an entire document. As a result, developing efficient lemmatization algorithms is an open area of research.</p>
+<p>An example of using spacy can be found below. First we download the spaCy english model:</p>
+<pre class="{bash}"><code>pip install spacy
+python -m spacy download en_core_web_sm</code></pre>
+<p>Then we run our pipeline:</p>
+<div id="eeb144b9" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> spacy</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Load spaCy model</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>nlp <span class="op">=</span> spacy.load(<span class="st">'en_core_web_sm'</span>)</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Example tweet</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>tweet <span class="op">=</span> <span class="st">"RT @username: Example tweet with URL https://t.co/example and #hashtag"</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Preprocessing with spaCy</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>doc <span class="op">=</span> nlp(tweet)</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Tokenization and processing</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove URLs, handles, hashtags, stop words, and punctuation. Then, lemmatize the tokens.</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>tokens <span class="op">=</span> [</span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>    token.lemma_ <span class="cf">for</span> token <span class="kw">in</span> doc </span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> token.is_stop </span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">and</span> <span class="kw">not</span> token.is_punct </span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">and</span> <span class="kw">not</span> token.like_url </span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">and</span> <span class="kw">not</span> token.is_space </span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">and</span> token.text[<span class="dv">0</span>] <span class="op">!=</span> <span class="st">'#'</span> </span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">and</span> token.text[<span class="dv">0</span>] <span class="op">!=</span> <span class="st">'@'</span></span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Processed tweet tokens:"</span>, tokens)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/anaconda/envs/llm_research/lib/python3.10/site-packages/torch/cuda/__init__.py:628: UserWarning:
+
+Can't initialize NVML
+</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Processed tweet tokens: ['RT', 'example', 'tweet', 'url', 'hashtag']</code></pre>
+</div>
+</div>
+<p>The primary changes with spaCy involve how you handle text processing:</p>
+<ul>
+<li>spaCy’s Tokenizer handles tokenization more comprehensively, so you don’t need to manually remove RT, URLs, or use regex for hashtags.</li>
+<li>Lemmatization is used instead of stemming. spaCy provides the .lemma_ attribute for tokens.</li>
+<li>Stop word removal is streamlined with token.is_stop.</li>
+<li>Punctuation removal is achieved with token.is_punct.</li>
+<li>spaCy does not require separate download commands for stop words or tokenizers as NLTK does.</li>
+</ul>
+</section>
+</section>
+<section id="summing-all-together" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="summing-all-together"><span class="header-section-number">2.5</span> Summing all together</h2>
+<p>Over all , you start with a given text, you perform preprocessing, then you do feature extraction to convert text into numerical representation as follows:</p>
+<p><img src="images/basic_feat_engineering_calculation.png" class="img-fluid"></p>
+<p>The feature vector <span class="math inline">X</span> becomes of dimension <span class="math inline">(m,3)</span> as follows:</p>
+<p><img src="images/feature_vector.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="logistic-regression-overview" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Logistic Regression Overview</h1>
+<p>Logistic regression makes use of the sigmoid function which outputs a probability between 0 and 1. The sigmoid function with some weight parameter <span class="math inline">\theta</span> and some input <span class="math inline">x^(i)</span> is defined as follows:</p>
+<p><img src="images/log_reg.png" class="img-fluid"></p>
+<p>Note that as <span class="math inline">\theta x^(i)</span> gets closer and closer to <span class="math inline">-\infty</span> the denominator of the sigmoid function gets larger and larger and as a result, the sigmoid gets closer to 0. On the other hand, as <span class="math inline">\theta x^(i)</span> to <span class="math inline">+\infty</span> the denominator of the sigmoid function gets closer to 1 and as a result the sigmoid also gets closer to 1.</p>
+<p>Now given a tweet, you can transform it into a vector and run it through your sigmoid function to get a prediction as follows:</p>
+<p><img src="images/log_score_for_tweet.png" class="img-fluid"></p>
+<section id="training-logistic-regression." class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="training-logistic-regression."><span class="header-section-number">3.1</span> Training logistic regression.</h2>
+<p><img src="images/gradient_descent_algo.png" class="img-fluid"></p>
 </section>
 </section>
 
