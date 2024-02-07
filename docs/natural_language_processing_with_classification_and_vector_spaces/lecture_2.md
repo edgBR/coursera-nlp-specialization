@@ -130,12 +130,12 @@ or negative. The higher the ratio, the more positive the word is:
 
 To do inference, you can compute the following:
 
-![](images/prior-ratio.png)
+![](images/prior-ratio.PNG)
 
 As m gets larger, we can get numerical flow issues, so we introduce the
 log, which gives you the following equation:
 
-![](images/log-prior-ratio.png)
+![](images/log-prior-ratio.PNG)
 
 The first component is called the log prior and the second component is
 the log likelihood. We further introduce λ as follows:
