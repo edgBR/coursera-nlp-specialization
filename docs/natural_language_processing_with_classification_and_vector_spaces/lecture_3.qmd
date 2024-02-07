@@ -1,17 +1,17 @@
 ---
-title: "Sentiment Analysis with Naîve Bayes"
+title: "Vector Space Models"
 jupyter: "nlp-python-kernel"
 format:
-  # html:
-  #   toc: true
-  #   toc-depth: 3
-  #   toc-location: left
-  #   number-sections: true
-  #   number-depth: 3
-  #   html-math-method: katex
-  #   css: styles.css
+  html:
+    # toc: true
+    # toc-depth: 3
+    # toc-location: left
+    # number-sections: true
+    # number-depth: 3
+    # html-math-method: katex
+    # css: styles.css
   gfm:
-    html-math-method: webtex
+      html-math-method: webtex
 ---
 
 \newpage
