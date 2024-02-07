@@ -194,8 +194,8 @@ print('\033[92m' + all_positive_tweets[random.randint(0,5000)])
 print('\033[91m' + all_negative_tweets[random.randint(0,5000)])
 ```
 
-    Invite My pin 5878E503 :)
-    this song is freaking saaaaaaad :(
+    @LeeMcKenzieTV Looking sharp :-)
+    Another ridiculous headache :(
 
 Data preprocessing is one of the critical steps in any machine learning
 project. It includes cleaning and formatting the data before feeding

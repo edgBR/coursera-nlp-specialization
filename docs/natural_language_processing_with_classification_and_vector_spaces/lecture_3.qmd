@@ -11,7 +11,9 @@ format:
     # html-math-method: katex
     # css: styles.css
   gfm:
-      html-math-method: webtex
+      html-math-method:
+        method: webtex
+        url: https://latex.codecogs.com/png.image?%5Cbg_black&space;
 ---
 
 \newpage
