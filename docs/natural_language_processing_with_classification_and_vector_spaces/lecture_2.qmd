@@ -14,538 +14,110 @@ format:
 
 \newpage
 
-# Supervised ML & Sentiment Analysis
+# Probability and Bayes rules
 
-In supervised machine learning, you usually have an input $X$, which goes into your prediction function to get your $\hat{Y}$ You can then compare your prediction with the true value $Y$. This gives you your cost which you use to update the parameters The following image, summarizes the process.
+Bayes rule is applied in many different fields, ranging from medicine to education and is used extensively in NLP. Imagine you have an extensive corpus of tweets that can be categorized as either positive or negative sentiment, but not both. Within that corpus, the word happy is sometimes being labeled positive and sometimes negative.
 
-![Diagram representation of Supervised Learning](images/supervised-learning.png)
+Suppose you define event A as a tweets being labeled positive, then the probability of event A, shown as B of A here, is calculated as the ratio between the counts of positive tweets in the corpus divided by the total number of tweets in the corpus. In this example, that number comes out to 13 over 20, or 0.65. You could also express this value as a percentage, 65 percent positive. It's worth noting that the complimentary probability here, which is the probability of the tweets expressing a negative sentiment is just equal to one minus the probability of a positive sentiment ($P(Negative) = 1-P(Positive) = 0.35$).
 
-To perform sentiment analysis on a tweet, you first have to represent the text (i.e. "I am happy because I am learning NLP ") as features, you then train your logistic regression classifier, and then you can use it to classify the text.
+![](images/bayes-probability.PNG)
 
-![Schematic representation of using supervised learning for sentiment classification.](images/paste-1.png)
+Now we define event B as the number of tweets containing the word "happy" therefore $P(B) = P(happy) = N_{happy} / N = P(B) = 4/20 = 0.2$. We can define the probability of intersection as:
 
-Note that in this case, you either classify 1, for a positive sentiment, or 0, for a negative sentiment.
+![](images/intersection-prob-bayes.PNG)
 
-# Text Representation.
+# Conditional Probabilities
 
-## Sparse Representation.
+ In order to derive Bayes rule, let's first take a look at the conditional probabilities. Now think about what happens if, instead of the entire corpus, you only consider tweets that contain the word happy. This is the same as saying, given that a tweet contains the word happy with that, you would be considering only the tweets inside the blue circle, where many of the positive tweets are now excluded. In this case, the probability that a tweet is positive, given that it contains the word happy, simply becomes the number of tweets that are positive and also contain the word happy. We divide that by the number that contain the word happy. As you can see by this calculation, your tweet has a 75 percent likelihood of being positive if it contains the word happy.
 
-Given a set of tweets:
+ ![](images/bayes-rule-1.PNG)
 
-```{python}
-tweets = ['This dog is amazing but I prefer a corgi',
-'Donald Trump hair-dresser should be in jail',
-'Roses are red, the sky is blue and machine learning is not a black box']
-```
-A vocabulary $V$ will be formed by all the different words available in the tweet list. Lets imagine that our vocabulary is just composed of the unique words of our first tweet. In this case we could encode the second tweet as follows:
+ You could make the same case for positive tweets. The purple area denotes the probability that a positive tweet contains the word happy. In this case, the probability is 3 over 13, which is 0.231
 
-```{python}
-sparse_vector = []
-vocabulary = tweets[0].split(' ')
-for i in tweets[2].split(' '):
-    if i in vocabulary:
-        sparse_vector.append(1)
-    else:
-        sparse_vector.append(0)
-```
+ ![](images/bayes-rule-2.PNG)
 
-The resulting vector will be $[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0]$ which is a sparse vector as it mostly contain 0s. It is easily seen that this is not scalable as well as not memory efficient. Basically the resulting vectors will have a size of $n=|V|$
+ We know now that $P(Postitve | "happy") = 3/4$ and $P("happy" | Positive) = 3/13$. We know that the probability of the intersection of being positive and happy should be $P(Postitve | "happy") * P("happy") = P(Positive \cap "happy")$ and in an analogous manner $P("happy" | "Positive") * P("Positive") = P("happy" \cap "Positive")$
 
-## Negative and Positive Frequencies.
+ Therefore rearranging you get to:
 
-Let's imagine that now we have the following tweets:
+$P(Postitve | "happy") * P("happy") = P("happy" | Positive) * P(Positive) / ("happy")$
 
-```{python}
-tweets = ['I am happy because I am learning NLP',
-'I am happy',
-'I am sad, I am not learning NLP',
-'I am sad']
-```
+Generalizing Bayes Rule is:
 
-The unique vocabulary can be obtained by:
+$P(\textrm{X}|\textrm{Y}) = \frac{P(\textrm{Y}|\textrm{X}) \times P(\textrm{X})}{P(\textrm{Y})}$
 
-```{python}
-all_text = ' '.join(tweets).lower()
-import string
-all_tweets = all_text.translate(str.maketrans('', '', string.punctuation))
+# Naive Bayes for text classification.
 
-# Split the combined string into individual words
-words = all_tweets.split()
+To build a classifier, we will first start by creating conditional probabilities given the following table:
 
-# Convert the list of words into a set to get unique words
-unique_words = set(words)
+ ![](images/freq-table-bayes.png)
 
-print(unique_words)
+ This allows us to compute the table of probabilities:
 
-```
+ ![](images/prob-table-bayes.png)
 
-For this particular example of sentiment analysis, you have two classes. One class associated with positive sentiment and the other with negative sentiment. So taking your corpus, you'd have a set of two tweets that belong to the positive class, and the sets of two tweets that belong to the negative class. Let's take the sets of positive tweets. Now, take a look at your vocabulary. To get the positive frequency in any word in your vocabulary, you will have to count the times as it appears in the positive tweets and viceversa for the negative frequency.
+ Once you have the probabilities, you can compute the likelihood score as follows:
 
-![](images/negative-positive-dictionary.PNG)
 
-## Feature extraction with Frequencies {#sec-frequencies-1}
+ ![](images/likelihood-bayes.png)
 
-Given the representation of the dictionary mentioned above. We can calculate a feature representation vector as follows:
 
+A score greater than 1 indicates that the class is positive, otherwise it is negative.
 
-```{python}
-positive_negative_dictionary = {
-    'vocabulary' : ['I', 'am', 'happy', 'because', 'learning', 'NLP', 'sad', 'not'],
-    'posfreq(1)' : [3, 3, 2, 1, 1, 1, 0, 0],
-    'negfreq(0)' : [3, 3, 0, 0, 1, 1, 2, 1],
-}
+## Laplacian Smoothing.
 
-sentence = ['I', 'am', 'sad', 'I', 'am', 'not', 'learning', 'NLP']
+Sometimes you try to calculate the probability of a word happening after a word. To do that you might want to count the number of times those two words showed up. One after another, divided by the number of times the first word appeared. Now what if the two words never showed up next to each other in the training corpus. You get a probability of zero, and the probability of an entire sequence might go to zero.
 
-positions = set(
-    [positive_negative_dictionary['vocabulary'].index(word)
-    for word in sentence])
+Laplacian smoothing, a technique you can use to avoid your probabilities being zero. The expression used to calculate the conditional probability of a word given the class is the frequency of the word in the corpus:
 
-pos_freq_sum = sum(
-    positive_negative_dictionary['posfreq(1)'][position]
-    for position in positions)
-neg_freq_sum = sum(
-    positive_negative_dictionary['negfreq(0)'][position]
-    for position in positions)
+$P(\textrm{w_i}|class) = \frac{freq(w_{i}, class)}{N_{class}}$
 
-X_m = [1, pos_freq_sum, neg_freq_sum]
-X_m
+However, if a word does not appear in the training, then it automatically gets a probability of 0, to fix this we add smoothing as follows:
 
-```
+$P(\textrm{w_i}|class) = \frac{freq(w_{i}, class) + 1}{N_{class} + V_{class}}$
 
-## Preprocessing techniques.
+Where $N_{class}$ is the frequency of all words in class and $V_{class}$ is the number of unique words in a class.
 
-Lets use now a real dataset from the NLTK library. We will be using the Twitter dataset, the sample dataset from NLTK is separated into positive and negative tweets. It contains 5000 positive tweets and 5000 negative tweets exactly. The exact match between these classes is not a coincidence. The intention is to have a balanced dataset. That does not reflect the real distributions of positive and negative classes in live Twitter streams. It is just because balanced datasets simplify the design of most computational methods that are required for sentiment analysis. However, it is better to be aware that this balance of classes is artificial.
+## Log Likelihood
 
-```{python}
-import nltk                                # Python library for NLP
-from nltk.corpus import twitter_samples    # sample Twitter dataset from NLTK
-import matplotlib.pyplot as plt            # library for visualization
-import random
+To compute the log likelihood, we need to get the ratios and use them to compute a score that will allow us to decide whether a tweet is positive or negative. The higher the ratio, the more positive the word is:
 
-# downloads sample twitter dataset.
-nltk.download('twitter_samples')
-# select the set of positive and negative tweets
-all_positive_tweets = twitter_samples.strings('positive_tweets.json')
-all_negative_tweets = twitter_samples.strings('negative_tweets.json')
 
-```
-We will now get the number of positives and negative tweets:
+ ![](images/log-likelihood-ratio.png)
 
-```{python}
 
-print(f'Number of positive tweets: {len(all_positive_tweets)}')
-print(f'Number of negative tweets: {len(all_negative_tweets)}')
+To do inference, you can compute the following:
 
-print(f'The type of all_positive_tweets is: {type(all_positive_tweets)}')
-print(f'The type of a tweet entry is: {type(all_negative_tweets[0])}')
-```
+ ![](images/prior-ratio.png)
 
-Before anything else, we can print a couple of tweets from the dataset to see how they look. Understanding the data is responsible for 80% of the success or failure in data science projects. We can use this time to observe aspects we'd like to consider when preprocessing our data.
+As m gets larger, we can get numerical flow issues, so we introduce the
+log, which gives you the following equation:
 
-Below, you will print one random positive and one random negative tweet. We have added a color mark at the beginning of the string to further distinguish the two. (Warning: This is taken from a public dataset of real tweets and a very small portion has explicit content.)
+ ![](images/log-prior-ratio.png)
 
-```{python}
+The first component is called the log prior and the second component is the log likelihood. We further introduce λ as follows:
 
-# print positive in greeen
-print('\033[92m' + all_positive_tweets[random.randint(0,5000)])
+ ![](images/lambda-dict.png)
 
-# print negative in red
-print('\033[91m' + all_negative_tweets[random.randint(0,5000)])
+Having the $\lambda$ dictionary will help a lot when doing inference. An example of this inference logic can be found below:
 
-```
+ ![](images/lambda-inference-example.png)
 
-Data preprocessing is one of the critical steps in any machine learning project. It includes cleaning and formatting the data before feeding into a machine learning algorithm. For NLP, the preprocessing steps are comprised of the following tasks:
+ ## Training Naive Bayes
 
-- Tokenizing the string
-- Lowercasing
-- Removing stop words and punctuation
-- Stemming
+ The following algorithm is used to train a Naive Bayes model:
 
-All of this techniques allow us to compress even more the dimension of the vocabulary, achieving faster training due to lower feature vector size.
+ 1. Get or annotate a dataset with positive and negative tweets
+ 2. Preprocess the text according to the classical preprocessing rules we have described in lecture 1 (lowercasing, remove punctuation, remove urls, remove names, stop words, stemming, lemmas, tokenization)
+ 3. Compute the $freq(w_{i}, class)$ with the sum of words $N_{class}$ for every class.
+ 4. Get the conditional probabilities for every word and each class.
+ 5. Calculate the $\lambda$ of every word in the frquency table.
+ 6. Get the log prior las $logprior=log(\frac{P(pos)}/{P(neg)})$
 
-### HyperLink Cleaning
+ ## Naive Bayes assumptions
 
-```{python}
-import re                                  # library for regular expression operations
-import string                              # for string operations
+ Naïve bayes is a very simple model because it doesn't require setting any custom parameters. This method is referred to as naïve, because of the assumptions it makes about the data. The first assumption is independence between the predictors or features associated with each class. And the second, has to do with your validation set. Let's explore each of these assumptions and how they could affect your results. To illustrate what independence between features looks like, let's look at the following sentence.
 
-from nltk.corpus import stopwords          # module for stop words that come with NLTK
-from nltk.stem import PorterStemmer        # module for stemming
-from nltk.tokenize import TweetTokenizer   # module for tokenizing strings
-nltk.download('stopwords')
+ ![](images/assumptions-bayes.png)
 
-# Our selected sample. Complex enough to exemplify each step
-tweet = all_positive_tweets[2277]
-print(tweet)
-```
-
-Since we have a Twitter dataset, we'd like to remove some substrings commonly used on the platform like the hashtag, retweet marks, and hyperlinks. We'll use the re library to perform regular expression operations on our tweet. We'll define our search pattern and use the sub() method to remove matches by substituting with an empty character (i.e. '')
-
-```{python}
-print('\033[92m' + tweet)
-print('\033[94m')
-
-# remove old style retweet text "RT"
-tweet2 = re.sub(r'^RT[\s]+', '', tweet)
-
-# remove hyperlinks
-tweet2 = re.sub(r'https?://[^\s\n\r]+', '', tweet2)
-
-# remove hashtags
-# only removing the hash # sign from the word
-tweet2 = re.sub(r'#', '', tweet2)
-
-print(tweet2)
-```
-
-### Tokenization
-
-```{python}
-print()
-print('\033[92m' + tweet2)
-print('\033[94m')
-
-# instantiate tokenizer class
-tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True,
-                               reduce_len=True)
-
-# tokenize tweets
-tweet_tokens = tokenizer.tokenize(tweet2)
-
-print()
-print('Tokenized string:')
-print(tweet_tokens)
-```
-
-### Punctuation and Stopwords
-
-The next step is to remove stop words and punctuation. Stop words are words that don't add significant meaning to the text. You'll see the list provided by NLTK when you run the cells below.
-
-```{python}
-#Import the english stop words list from NLTK
-#Import the english stop words list from NLTK
-stopwords_english = stopwords.words('english')
-
-print('Stop words\n')
-print(stopwords_english)
-
-print('\nPunctuation\n')
-print(string.punctuation)
-
-```
-
-We can see that the stop words list above contains some words that could be important in some contexts. These could be words like i, not, between, because, won, against. You might need to customize the stop words list for some applications. For our exercise, we will use the entire list.
-
-For the punctuation, we saw earlier that certain groupings like ':)' and '...' should be retained when dealing with tweets because they are used to express emotions. In other contexts, like medical analysis, these should also be removed.
-
-Now we clean the tokenized tweet:
-
-```{python}
-print()
-print('\033[92m')
-print(tweet_tokens)
-print('\033[94m')
-
-tweets_clean = []
-
-for word in tweet_tokens: # Go through every word in your tokens list
-    if (word not in stopwords_english and  # remove stopwords
-        word not in string.punctuation):  # remove punctuation
-        tweets_clean.append(word)
-
-print('removed stop words and punctuation:')
-print(tweets_clean)
-```
-
-### Stemming and lowercasing
-
-Stemming is the process of converting a word to its most general form, or stem. This helps in reducing the size of our vocabulary.
-
-Consider the words:
-
-- learn
-- learning
-- learned
-- learnt
-
-All these words are stemmed from its common root learn. However, in some cases, the stemming process produces words that are not correct spellings of the root word. For example, happi and sunni. That's because it chooses the most common stem for related words. For example, we can look at the set of words that comprises the different forms of happy:
-
-- happy
-- happiness
-- happier
-
-We can see that the prefix happi is more commonly used. We cannot choose happ because it is the stem of unrelated words like happen.
-
-NLTK has different modules for stemming and we will be using the PorterStemmer module which uses the Porter Stemming Algorithm. Let's see how we can use it in the cell below.
-
-```{python}
-print()
-print('\033[92m')
-print(tweets_clean)
-print('\033[94m')
-
-# Instantiate stemming class
-stemmer = PorterStemmer()
-
-# Create an empty list to store the stems
-tweets_stem = []
-
-for word in tweets_clean:
-    stem_word = stemmer.stem(word)  # stemming word
-    tweets_stem.append(stem_word)  # append to the list
-
-print('stemmed words:')
-print(tweets_stem)
-```
-
-### Lemmatization
-
-Another popular library to handle text processing is SpaCy. SpaCy does not have built-in support for stemming but if focuses more in Lemmatization (which is a more sophisticated approach to reduce words to their base form).
-
-Lemmatization (or less commonly lemmatisation) in linguistics is the process of grouping together the inflected forms of a word so they can be analysed as a single item, identified by the word's lemma, or dictionary form.[1]
-
-In computational linguistics, lemmatization is the algorithmic process of determining the lemma of a word based on its intended meaning. Unlike stemming, lemmatization depends on correctly identifying the intended part of speech and meaning of a word in a sentence, as well as within the larger context surrounding that sentence, such as neighbouring sentences or even an entire document. As a result, developing efficient lemmatization algorithms is an open area of research.
-
-An example of using spacy can be found below. First we download the spaCy english model:
-
-```{bash}
-pip install spacy
-python -m spacy download en_core_web_sm
-```
-
-Then we run our pipeline:
-
-```{python}
-import spacy
-import random
-import matplotlib.pyplot as plt
-
-# Load spaCy model
-nlp = spacy.load('en_core_web_sm')
-
-# Example tweet
-tweet = "RT @username: Example tweet with URL https://t.co/example and #hashtag"
-
-# Preprocessing with spaCy
-doc = nlp(tweet)
-
-# Tokenization and processing
-# Remove URLs, handles, hashtags, stop words, and punctuation. Then, lemmatize the tokens.
-tokens = [
-    token.lemma_ for token in doc
-    if not token.is_stop
-    and not token.is_punct
-    and not token.like_url
-    and not token.is_space
-    and token.text[0] != '#'
-    and token.text[0] != '@'
-    ]
-
-print("Processed tweet tokens:", tokens)
-
-```
-
-The primary changes with spaCy involve how you handle text processing:
-
-- spaCy's Tokenizer handles tokenization more comprehensively, so you don't need to manually remove RT, URLs, or use regex for hashtags.
-- Lemmatization is used instead of stemming. spaCy provides the .lemma_ attribute for tokens.
-- Stop word removal is streamlined with token.is_stop.
-- Punctuation removal is achieved with token.is_punct.
-- spaCy does not require separate download commands for stop words or tokenizers as NLTK does.
-
-## Summing all together
-
-Over all , you start with a given text, you perform preprocessing, then you do feature extraction to convert text into numerical representation as follows:
-
-
-![](images/basic_feat_engineering_calculation.png)
-
-The feature vector $X$ becomes of dimension $(m,3)$ as follows:
-
-![](images/feature_vector.png)
-
-## Building and Visualizing word frequencies
-
-In our previous example in @sec-frequencies-1 we show how to compute the feature vector given the pre-computed frequencies. Now we will the frequency computation from scratch. To do that we will download the twitter sammples dataset again.
-
-```{python}
-import nltk                                  # Python library for NLP
-from nltk.corpus import twitter_samples      # sample Twitter dataset from NLTK
-import matplotlib.pyplot as plt              # visualization library
-import numpy as np                           # library for scientific computing and matrix operations
-
-nltk.download('twitter_samples')
-all_positive_tweets = twitter_samples.strings('positive_tweets.json')
-all_negative_tweets = twitter_samples.strings('negative_tweets.json')
-
-# concatenate the lists, 1st part is the positive tweets followed by the negative
-tweets = all_positive_tweets + all_negative_tweets
-
-# let's see how many tweets we have
-print("Number of tweets: ", len(tweets))
-labels = np.append(np.ones((len(all_positive_tweets))), np.zeros((len(all_negative_tweets))))
-
-```
-
-To build the frequency computation we will use python dictionaries. In Python, a dictionary is a mutable and indexed collection. It stores items as key-value pairs and uses hash tables underneath to allow practically constant time lookups. In NLP, dictionaries are essential because it enables fast retrieval of items or containment checks even with thousands of entries in the collection.
-
-We will create a function that given a list of tweets it iterates over the whole list, and stores a pair information associated with a given sentiment label.
-
-```{python}
-
-import spacy
-nlp = spacy.load('en_core_web_sm')
-
-def process_tweet(tweet):
-    """Process tweet function.
-    Input:
-        tweet: a string containing a tweet
-    Output:
-        tweets_clean: a list of words containing the processed tweet
-
-    """
-    doc = nlp(tweet)
-
-    # Tokenization and processing
-    # Remove URLs, handles, hashtags, stop words, and punctuation.
-    # Then, lemmatize the tokens.
-    tokens = [
-        token.lemma_.lower() for token in doc
-        if not token.is_stop
-        and not token.is_punct
-        and not token.like_url
-        and not token.is_space
-        and token.text[0] != '#'
-        and token.text[0] != '@'
-        ]
-
-    return tokens
-
-def build_freqs(tweets, ys):
-    """Build frequencies.
-    Input:
-        tweets: a list of tweets
-        ys: an m x 1 array with the sentiment label of each tweet
-            (either 0 or 1)
-    Output:
-        freqs: a dictionary mapping each (word, sentiment) pair to its
-        frequency
-    """
-    # Convert np array to list since zip needs an iterable.
-    # The squeeze is necessary or the list ends up with one element.
-    # Also note that this is just a NOP if ys is already a list.
-    yslist = np.squeeze(ys).tolist()
-
-    # Start with an empty dictionary and populate it by looping over all tweets
-    # and over all processed words in each tweet.
-    freqs = {}
-    for y, tweet in zip(yslist, tweets):
-        for word in process_tweet(tweet):
-            pair = (word, y)
-            freqs[pair] = freqs.get(pair, 0) + 1
-    return freqs
-```
-
-Instead of using the default utils.process_tweet function we will write a new one using spaCy.
-
-We will now create our frequency dictionary:
-
-```{python}
-freqs = build_freqs(tweets, labels)
-
-# check data type
-print(f'type(freqs) = {type(freqs)}')
-
-# check length of the dictionary
-print(f'len(freqs) = {len(freqs)}')
-
-print(freqs)
-
-```
-
-Visualizing our frequency list is definitely not useful so we will try to create a table of word counts:
-
-```{python}
-keys = ['happy', 'merry', 'nice', 'good', 'bad', 'sad', 'mad', 'best', 'pretty',
-        '❤', ':)', ':(', '😒', '😬', '😄', '😍', '♛',
-        'song', 'idea', 'power', 'play', 'magnific']
-
-# list representing our table of word counts.
-# each element consist of a sublist with this pattern: [<word>, <positive_count>, <negative_count>]
-data = []
-
-# loop through our selected words
-for word in keys:
-
-    # initialize positive and negative counts
-    pos = 0
-    neg = 0
-
-    # retrieve number of positive counts
-    if (word, 1) in freqs:
-        pos = freqs[(word, 1)]
-
-    # retrieve number of negative counts
-    if (word, 0) in freqs:
-        neg = freqs[(word, 0)]
-
-    # append the word counts to the table
-    data.append([word, pos, neg])
-
-data
-```
-
-```{python}
-import seaborn as sns
-import matplotlib.pyplot as plt
-import numpy as np
-sns.set_theme()
-fig, ax = plt.subplots(figsize = (8, 8))
-
-# convert positive raw counts to logarithmic scale. we add 1 to avoid log(0)
-x = np.log([x[1] + 1 for x in data])
-
-# do the same for the negative counts
-y = np.log([x[2] + 1 for x in data])
-
-# Plot a dot for each pair of words
-ax.scatter(x, y)
-
-# assign axis labels
-plt.xlabel("Log Positive count")
-plt.ylabel("Log Negative count")
-
-# Add the word as the label at the same position as you added the points just before
-for i in range(0, len(data)):
-    ax.annotate(data[i][0], (x[i], y[i]), fontsize=12)
-
-ax.plot([0, 9], [0, 9], color = 'red') # Plot the red line that divides the 2 areas.
-plt.show()
-```
-
-# Logistic Regression Overview
-
-Logistic regression makes use of the sigmoid function which outputs a probability between 0 and 1. The sigmoid function with some weight parameter
-$\theta$ and some input $x^(i)$ is defined as follows:
-
-![](images/log_reg.png)
-
-
-Note that as $\theta x^(i)$  gets closer and closer to $-\infty$  the denominator of the sigmoid function gets larger and larger and as a result, the sigmoid gets closer to 0. On the other hand, as $\theta x^(i)$ to $+\infty$ the denominator of the sigmoid function gets closer to 1 and as a result the sigmoid also gets closer to
-1.
-
-Now given a tweet, you can transform it into a vector and run it through your sigmoid function to get a prediction as follows:
-
-![](images/log_score_for_tweet.png)
-
-## Training logistic regression.
-
-To train your logistic regression function, you will do the following:
-
-![](images/gradient_descent_algo.png)
-
-You initialize your parameter $\theta$, that you can use in your sigmoid, you then compute the gradient that you will use to update
-$\theta$, and then calculate the cost. You keep doing so until good enough.
-
-Usually you keep training until the cost converges. The convergence criteria is something that you define upfront as basically a scalar that you consider is good enough as minimum value of the loss.
+ In the first image, you can see the word sunny and hot tend to depend on each other and are correlated to a certain extent with the word "desert". Naive Bayes assumes independence throughout. Furthermore, if you were to fill in the sentence on the right, this naive model will assign equal weight to the words "spring, summer, fall, winter".
