@@ -1,14 +1,43 @@
 # Sentiment Analysis with Logistic Regression
 
 
+- [<span class="toc-section-number">1</span> Supervised ML & Sentiment
+  Analysis](#supervised-ml--sentiment-analysis)
+- [<span class="toc-section-number">2</span> Text
+  Representation.](#text-representation)
+  - [<span class="toc-section-number">2.1</span> Sparse
+    Representation.](#sparse-representation)
+  - [<span class="toc-section-number">2.2</span> Negative and Positive
+    Frequencies.](#negative-and-positive-frequencies)
+  - [<span class="toc-section-number">2.3</span> Feature extraction with
+    Frequencies](#sec-frequencies-1)
+  - [<span class="toc-section-number">2.4</span> Preprocessing
+    techniques.](#preprocessing-techniques)
+    - [<span class="toc-section-number">2.4.1</span> HyperLink
+      Cleaning](#hyperlink-cleaning)
+    - [<span class="toc-section-number">2.4.2</span>
+      Tokenization](#tokenization)
+    - [<span class="toc-section-number">2.4.3</span> Punctuation and
+      Stopwords](#punctuation-and-stopwords)
+    - [<span class="toc-section-number">2.4.4</span> Stemming and
+      lowercasing](#stemming-and-lowercasing)
+    - [<span class="toc-section-number">2.4.5</span>
+      Lemmatization](#lemmatization)
+  - [<span class="toc-section-number">2.5</span> Summing all
+    together](#summing-all-together)
+  - [<span class="toc-section-number">2.6</span> Building and
+    Visualizing word
+    frequencies](#building-and-visualizing-word-frequencies)
+- [<span class="toc-section-number">3</span> Logistic Regression
+  Overview](#logistic-regression-overview)
+  - [<span class="toc-section-number">3.1</span> Training logistic
+    regression.](#training-logistic-regression)
+
 # Supervised ML & Sentiment Analysis
 
-In supervised machine learning, you usually have an input
-![X](https://latex.codecogs.com/svg.latex?X "X"), which goes into your
-prediction function to get your
-![\hat{Y}](https://latex.codecogs.com/svg.latex?%5Chat%7BY%7D "\hat{Y}")
-You can then compare your prediction with the true value
-![Y](https://latex.codecogs.com/svg.latex?Y "Y"). This gives you your
+In supervised machine learning, you usually have an input $X$, which
+goes into your prediction function to get your $\hat{Y}$ You can then
+compare your prediction with the true value $Y$. This gives you your
 cost which you use to update the parameters The following image,
 summarizes the process.
 
@@ -38,10 +67,10 @@ tweets = ['This dog is amazing but I prefer a corgi',
 'Roses are red, the sky is blue and machine learning is not a black box']
 ```
 
-A vocabulary ![V](https://latex.codecogs.com/svg.latex?V "V") will be
-formed by all the different words available in the tweet list. Lets
-imagine that our vocabulary is just composed of the unique words of our
-first tweet. In this case we could encode the second tweet as follows:
+A vocabulary $V$ will be formed by all the different words available in
+the tweet list. Lets imagine that our vocabulary is just composed of the
+unique words of our first tweet. In this case we could encode the second
+tweet as follows:
 
 ``` python
 sparse_vector = []
@@ -54,11 +83,10 @@ for i in tweets[2].split(' '):
 ```
 
 The resulting vector will be
-![\[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0\]](https://latex.codecogs.com/svg.latex?%5B0%2C%200%2C%200%2C%200%2C%200%2C%201%2C%200%2C%200%2C%200%2C%200%2C%201%2C%200%2C%201%2C%200%2C%200%5D "[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0]")
-which is a sparse vector as it mostly contain 0s. It is easily seen that
-this is not scalable as well as not memory efficient. Basically the
-resulting vectors will have a size of
-![n=\|V\|](https://latex.codecogs.com/svg.latex?n%3D%7CV%7C "n=|V|")
+$[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0]$ which is a sparse vector
+as it mostly contain 0s. It is easily seen that this is not scalable as
+well as not memory efficient. Basically the resulting vectors will have
+a size of $n=|V|$
 
 ## Negative and Positive Frequencies.
 
@@ -194,8 +222,9 @@ print('\033[92m' + all_positive_tweets[random.randint(0,5000)])
 print('\033[91m' + all_negative_tweets[random.randint(0,5000)])
 ```
 
-    @LeeMcKenzieTV Looking sharp :-)
-    Another ridiculous headache :(
+    Happy Friday :-) http://t.co/4lxRGxnnH1
+    Drop Dead Fred use to be my favorite movie
+    I wish I had it :-(
 
 Data preprocessing is one of the critical steps in any machine learning
 project. It includes cleaning and formatting the data before feeding
@@ -486,10 +515,7 @@ as follows:
 
 ![](images/basic_feat_engineering_calculation.png)
 
-The feature vector ![X](https://latex.codecogs.com/svg.latex?X "X")
-becomes of dimension
-![(m,3)](https://latex.codecogs.com/svg.latex?%28m%2C3%29 "(m,3)") as
-follows:
+The feature vector $X$ becomes of dimension $(m,3)$ as follows:
 
 ![](images/feature_vector.png)
 
@@ -701,25 +727,15 @@ plt.show()
 
 Logistic regression makes use of the sigmoid function which outputs a
 probability between 0 and 1. The sigmoid function with some weight
-parameter
-![\theta](https://latex.codecogs.com/svg.latex?%5Ctheta "\theta") and
-some input
-![x^(i)](https://latex.codecogs.com/svg.latex?x%5E%28i%29 "x^(i)") is
-defined as follows:
+parameter $\theta$ and some input $x^(i)$ is defined as follows:
 
 ![](images/log_reg.png)
 
-Note that as
-![\theta x^(i)](https://latex.codecogs.com/svg.latex?%5Ctheta%20x%5E%28i%29 "\theta x^(i)")
-gets closer and closer to
-![-\infty](https://latex.codecogs.com/svg.latex?-%5Cinfty "-\infty") the
+Note that as $\theta x^(i)$ gets closer and closer to $-\infty$ the
 denominator of the sigmoid function gets larger and larger and as a
 result, the sigmoid gets closer to 0. On the other hand, as
-![\theta x^(i)](https://latex.codecogs.com/svg.latex?%5Ctheta%20x%5E%28i%29 "\theta x^(i)")
-to
-![+\infty](https://latex.codecogs.com/svg.latex?%2B%5Cinfty "+\infty")
-the denominator of the sigmoid function gets closer to 1 and as a result
-the sigmoid also gets closer to 1.
+$\theta x^(i)$ to $+\infty$ the denominator of the sigmoid function gets
+closer to 1 and as a result the sigmoid also gets closer to 1.
 
 Now given a tweet, you can transform it into a vector and run it through
 your sigmoid function to get a prediction as follows:
@@ -732,12 +748,10 @@ To train your logistic regression function, you will do the following:
 
 ![](images/gradient_descent_algo.png)
 
-You initialize your parameter
-![\theta](https://latex.codecogs.com/svg.latex?%5Ctheta "\theta"), that
-you can use in your sigmoid, you then compute the gradient that you will
-use to update
-![\theta](https://latex.codecogs.com/svg.latex?%5Ctheta "\theta"), and
-then calculate the cost. You keep doing so until good enough.
+You initialize your parameter $\theta$, that you can use in your
+sigmoid, you then compute the gradient that you will use to update
+$\theta$, and then calculate the cost. You keep doing so until good
+enough.
 
 Usually you keep training until the cost converges. The convergence
 criteria is something that you define upfront as basically a scalar that
@@ -777,8 +791,7 @@ print("len(freqs) = " + str(len(freqs.keys())))
     len(freqs) = 11427
 
 Now we will write a function that computes the extracted features for
-every tweet and appends it to a feature vector
-![X](https://latex.codecogs.com/svg.latex?X "X"):
+every tweet and appends it to a feature vector $X$:
 
 ``` python
 def extract_features(tweet, freqs, process_tweet=process_tweet):
@@ -853,47 +866,37 @@ def sigmoid(z):
 And taking into account the relationship between linear regression and
 logistic regression we have that:
 
-![z = \theta\_{0} x\_{0} + \theta\_{1} x\_{1} + \theta\_{2} x\_{2} + ... \theta_N x\_{N}](https://latex.codecogs.com/svg.latex?z%20%3D%20%5Ctheta_%7B0%7D%20x_%7B0%7D%20%2B%20%5Ctheta_%7B1%7D%20x_%7B1%7D%20%2B%20%5Ctheta_%7B2%7D%20x_%7B2%7D%20%2B%20...%20%5Ctheta_N%20x_%7BN%7D "z = \theta_{0} x_{0} + \theta_{1} x_{1} + \theta_{2} x_{2} + ... \theta_N x_{N}")
+$z = \theta_{0} x_{0} + \theta_{1} x_{1} + \theta_{2} x_{2} + ... \theta_N x_{N}$
 
-![h(z) = \frac{1}{1+\exp^{-z}}](https://latex.codecogs.com/svg.latex?h%28z%29%20%3D%20%5Cfrac%7B1%7D%7B1%2B%5Cexp%5E%7B-z%7D%7D "h(z) = \frac{1}{1+\exp^{-z}}")
+$h(z) = \frac{1}{1+\exp^{-z}}$
 
 The cost function used for logistic regression is the average of the log
 loss across all training examples:
 
-![J(\theta) = -\frac{1}{m} \sum\_{i=1}^m y^{(i)}\log (h(z(\theta)^{(i)})) + (1-y^{(i)})\log (1-h(z(\theta)^{(i)}))\tag{1}](https://latex.codecogs.com/svg.latex?J%28%5Ctheta%29%20%3D%20-%5Cfrac%7B1%7D%7Bm%7D%20%5Csum_%7Bi%3D1%7D%5Em%20y%5E%7B%28i%29%7D%5Clog%20%28h%28z%28%5Ctheta%29%5E%7B%28i%29%7D%29%29%20%2B%20%281-y%5E%7B%28i%29%7D%29%5Clog%20%281-h%28z%28%5Ctheta%29%5E%7B%28i%29%7D%29%29%5Ctag%7B1%7D "J(\theta) = -\frac{1}{m} \sum_{i=1}^m y^{(i)}\log (h(z(\theta)^{(i)})) + (1-y^{(i)})\log (1-h(z(\theta)^{(i)}))\tag{1}")
+$$
+J(\theta) = -\frac{1}{m} \sum_{i=1}^m y^{(i)}\log (h(z(\theta)^{(i)})) + (1-y^{(i)})\log (1-h(z(\theta)^{(i)}))\tag{1}
+$$
 
 Where:
 
-- ![m](https://latex.codecogs.com/svg.latex?m "m") is the number of
-  training examples
-- ![y(i)](https://latex.codecogs.com/svg.latex?y%28i%29 "y(i)") is the
-  actual label of training example ‘i’.
-- ![h(z(i))](https://latex.codecogs.com/svg.latex?h%28z%28i%29%29 "h(z(i))")
-  is the model’s prediction for the training example ‘i’.
+- $m$ is the number of training examples
+- $y(i)$ is the actual label of training example ‘i’.
+- $h(z(i))$ is the model’s prediction for the training example ‘i’.
 
 To follow the algorithm explained at the beginning of the section we
-will have to update
-![\theta](https://latex.codecogs.com/svg.latex?%5Ctheta "\theta")
-weights using gradient descent. Calculating the gradient as:
+will have to update $\theta$ weights using gradient descent. Calculating
+the gradient as:
 
-![\nabla\_{\theta_j}J(\theta) = \frac{1}{m} \sum\_{i=1}^m(h^{(i)}-y^{(i)})x^{(i)}\_j \tag{2}](https://latex.codecogs.com/svg.latex?%5Cnabla_%7B%5Ctheta_j%7DJ%28%5Ctheta%29%20%3D%20%5Cfrac%7B1%7D%7Bm%7D%20%5Csum_%7Bi%3D1%7D%5Em%28h%5E%7B%28i%29%7D-y%5E%7B%28i%29%7D%29x%5E%7B%28i%29%7D_j%20%5Ctag%7B2%7D "\nabla_{\theta_j}J(\theta) = \frac{1}{m} \sum_{i=1}^m(h^{(i)}-y^{(i)})x^{(i)}_j \tag{2}")
+$$
+\nabla_{\theta_j}J(\theta) = \frac{1}{m} \sum_{i=1}^m(h^{(i)}-y^{(i)})x^{(i)}_j \tag{2}
+$$
 
-Where ![i](https://latex.codecogs.com/svg.latex?i "i") is the index
-across all ![m](https://latex.codecogs.com/svg.latex?m "m") training
-examples, ![j](https://latex.codecogs.com/svg.latex?j "j") is the index
-of weight
-![\theta_j](https://latex.codecogs.com/svg.latex?%5Ctheta_j "\theta_j"),
-so
-![x\_{j}^{i}](https://latex.codecogs.com/svg.latex?x_%7Bj%7D%5E%7Bi%7D "x_{j}^{i}")
-is the feature associated with
-![\theta_j](https://latex.codecogs.com/svg.latex?%5Ctheta_j "\theta_j"),
-and the learning rate is
-![\alpha](https://latex.codecogs.com/svg.latex?%5Calpha "\alpha") used
-to update
-![\theta_j](https://latex.codecogs.com/svg.latex?%5Ctheta_j "\theta_j")
-as:
+Where $i$ is the index across all $m$ training examples, $j$ is the
+index of weight $\theta_j$, so $x_{j}^{i}$ is the feature associated
+with $\theta_j$, and the learning rate is $\alpha$ used to update
+$\theta_j$ as:
 
-![\theta_j = \theta_j - \alpha \times \nabla\_{\theta_j}J(\theta)](https://latex.codecogs.com/svg.latex?%5Ctheta_j%20%3D%20%5Ctheta_j%20-%20%5Calpha%20%5Ctimes%20%5Cnabla_%7B%5Ctheta_j%7DJ%28%5Ctheta%29 "\theta_j = \theta_j - \alpha \times \nabla_{\theta_j}J(\theta)")
+$\theta_j = \theta_j - \alpha \times \nabla_{\theta_j}J(\theta)$
 
 Our vanilla algorithm in vector form for updating gradient descent will
 be:

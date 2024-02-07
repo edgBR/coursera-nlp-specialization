@@ -11,7 +11,11 @@ format:
 #     html-math-method: katex
 #     css: styles.css
   gfm:
-      html-math-method: webtex
+      html-math-method: katex
+      toc: true
+      toc-depth: 3
+      number-sections: true
+      number-depth: 3
 ---
 
 \newpage
