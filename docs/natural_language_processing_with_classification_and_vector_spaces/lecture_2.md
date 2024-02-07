@@ -11,6 +11,10 @@
     Smoothing.](#laplacian-smoothing)
   - [<span class="toc-section-number">3.2</span> Log
     Likelihood](#log-likelihood)
+  - [<span class="toc-section-number">3.3</span> Training Naive
+    Bayes](#training-naive-bayes)
+  - [<span class="toc-section-number">3.4</span> Naive Bayes
+    assumptions](#naive-bayes-assumptions)
 
 # Probability and Bayes rules
 
@@ -147,7 +151,7 @@ example of this inference logic can be found below:
 
 ![](images/lambda-inference-example.png)
 
-\## Training Naive Bayes
+## Training Naive Bayes
 
 The following algorithm is used to train a Naive Bayes model:
 
@@ -162,7 +166,7 @@ The following algorithm is used to train a Naive Bayes model:
 5.  Calculate the $\lambda$ of every word in the frquency table.
 6.  Get the log prior las $logprior=log(\frac{P(pos)}/{P(neg)})$
 
-\## Naive Bayes assumptions
+## Naive Bayes assumptions
 
 Naïve bayes is a very simple model because it doesn’t require setting
 any custom parameters. This method is referred to as naïve, because of

@@ -109,7 +109,7 @@ Having the $\lambda$ dictionary will help a lot when doing inference. An example
 
  ![](images/lambda-inference-example.png)
 
- ## Training Naive Bayes
+## Training Naive Bayes
 
  The following algorithm is used to train a Naive Bayes model:
 
@@ -120,7 +120,7 @@ Having the $\lambda$ dictionary will help a lot when doing inference. An example
  5. Calculate the $\lambda$ of every word in the frquency table.
  6. Get the log prior las $logprior=log(\frac{P(pos)}/{P(neg)})$
 
- ## Naive Bayes assumptions
+## Naive Bayes assumptions
 
  Naïve bayes is a very simple model because it doesn't require setting any custom parameters. This method is referred to as naïve, because of the assumptions it makes about the data. The first assumption is independence between the predictors or features associated with each class. And the second, has to do with your validation set. Let's explore each of these assumptions and how they could affect your results. To illustrate what independence between features looks like, let's look at the following sentence.
 
