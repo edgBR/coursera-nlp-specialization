@@ -1,4 +1,4 @@
-# Sentiment Analysis with Naîve Bayes
+# Vector Space Models
 
 
 - [<span class="toc-section-number">1</span> Probability and Bayes
@@ -62,16 +62,16 @@ In this case, the probability is 3 over 13, which is 0.231
 
 ![](images/bayes-rule-2.PNG)
 
-We know now that $P(Postitve | "happy") = 3/4$ and
-$P("happy" | Positive) = 3/13$. We know that the probability of the
+We know now that $P(Postitve | happy) = 3/4$ and
+$P(happy | Positive) = 3/13$. We know that the probability of the
 intersection of being positive and happy should be
-$P(Postitve | "happy") * P("happy") = P(Positive \cap "happy")$ and in
-an analogous manner
-$P("happy" | "Positive") * P("Positive") = P("happy" \cap "Positive")$
+$P(Postitve | happy) * P(happy) = P(Positive \cap happy)$ and in an
+analogous manner
+$P(happy | Positive) * P(Positive) = P(happy \cap Positive)$
 
 Therefore rearranging you get to:
 
-$P(Postitve | "happy") * P("happy") = P("happy" | Positive) * P(Positive) / ("happy")$
+$P(Postitve | happy) * P(happy) = P(happy | Positive) * P(Positive) / (happy)$
 
 Generalizing Bayes Rule is:
 
@@ -109,13 +109,13 @@ Laplacian smoothing, a technique you can use to avoid your probabilities
 being zero. The expression used to calculate the conditional probability
 of a word given the class is the frequency of the word in the corpus:
 
-$P(\textrm{w_i}|class) = \frac{freq(w_{i}, class)}{N_{class}}$
+$P({w_i}|class) = \frac{freq(w_{i}, class)}{N_{class}}$
 
 However, if a word does not appear in the training, then it
 automatically gets a probability of 0, to fix this we add smoothing as
 follows:
 
-$P(\textrm{w_i}|class) = \frac{freq(w_{i}, class) + 1}{N_{class} + V_{class}}$
+$P({w_i}|class) = \frac{freq(w_{i}, class) + 1}{N_{class} + V_{class}}$
 
 Where $N_{class}$ is the frequency of all words in class and $V_{class}$
 is the number of unique words in a class.
