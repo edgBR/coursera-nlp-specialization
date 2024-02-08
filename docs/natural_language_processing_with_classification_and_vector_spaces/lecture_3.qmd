@@ -2,14 +2,14 @@
 title: "Vector Space Models"
 jupyter: "nlp-python-kernel"
 format:
-  html:
-    # toc: true
-    # toc-depth: 3
-    # toc-location: left
-    # number-sections: true
-    # number-depth: 3
-    # html-math-method: katex
-    # css: styles.css
+  # html:
+  #   toc: true
+  #   toc-depth: 3
+  #   toc-location: left
+  #   number-sections: true
+  #   number-depth: 3
+  #   html-math-method: katex
+  #   css: styles.css
   gfm:
       html-math-method: katex
       toc: true
@@ -20,110 +20,95 @@ format:
 
 \newpage
 
-# Probability and Bayes rules
+# Vector space models applications
 
-Bayes rule is applied in many different fields, ranging from medicine to education and is used extensively in NLP. Imagine you have an extensive corpus of tweets that can be categorized as either positive or negative sentiment, but not both. Within that corpus, the word happy is sometimes being labeled positive and sometimes negative.
+So suppose you have two questions, the first one is, where are you heading? And the second one is where are you from? These sentences have identical words except for the last ones. However, they both have a different meaning. On the other hand say you have two more questions whose words are completely different but both sentences mean the same thing. Vector space models will help you identify whether the first pair of questions or the second pair are similar in meaning even if they do not share the same words. They can be used to identify similarity for a question answering, paraphrasing and summarization. Vector space models will also allow you to capture dependencies between words. Consider this sentence, you eat cereal from a bowl, here you can see that the words cereal and the word bowl are related.
 
-Suppose you define event A as a tweets being labeled positive, then the probability of event A, shown as B of A here, is calculated as the ratio between the counts of positive tweets in the corpus divided by the total number of tweets in the corpus. In this example, that number comes out to 13 over 20, or 0.65. You could also express this value as a percentage, 65 percent positive. It's worth noting that the complimentary probability here, which is the probability of the tweets expressing a negative sentiment is just equal to one minus the probability of a positive sentiment ($P(Negative) = 1-P(Positive) = 0.35$).
+![](images/word-dependencies.png)
 
-![](images/bayes-probability.PNG)
+Now let's look at this other sentence, you buy something and someone else sells it. So what it's saying is that someone sells something because someone else buys it. The second half of the sentence is dependent on the first half. With vectors based models, you will be able to capture this and many other types of relationships among different sets of words. Vector space models are used in information extraction to answer questions, in the style of who, what, where, how and etcetera. In machine translation and in chess sports programming.
 
-Now we define event B as the number of tweets containing the word "happy" therefore $P(B) = P(happy) = N_{happy} / N = P(B) = 4/20 = 0.2$. We can define the probability of intersection as:
+# Word by Word and Word by Doc
 
-![](images/intersection-prob-bayes.PNG)
+To get a vector space model using a word-by-word design, you will make a co-occurrence matrix and extract vector or presentations for the words in your corpus. You'll be able to get a vector space model using a word by document design using a similar approach.
 
-# Conditional Probabilities
-
- In order to derive Bayes rule, let's first take a look at the conditional probabilities. Now think about what happens if, instead of the entire corpus, you only consider tweets that contain the word happy. This is the same as saying, given that a tweet contains the word happy with that, you would be considering only the tweets inside the blue circle, where many of the positive tweets are now excluded. In this case, the probability that a tweet is positive, given that it contains the word happy, simply becomes the number of tweets that are positive and also contain the word happy. We divide that by the number that contain the word happy. As you can see by this calculation, your tweet has a 75 percent likelihood of being positive if it contains the word happy.
-
- ![](images/bayes-rule-1.PNG)
-
- You could make the same case for positive tweets. The purple area denotes the probability that a positive tweet contains the word happy. In this case, the probability is 3 over 13, which is 0.231
-
- ![](images/bayes-rule-2.PNG)
-
- We know now that $P(Postitve | happy) = 3/4$ and $P(happy | Positive) = 3/13$. We know that the probability of the intersection of being positive and happy should be $P(Postitve | happy) * P(happy) = P(Positive \cap happy)$ and in an analogous manner $P(happy | Positive) * P(Positive) = P(happy \cap Positive)$
-
- Therefore rearranging you get to:
-
-$P(Postitve | happy) * P(happy) = P(happy | Positive) * P(Positive) / (happy)$
-
-Generalizing Bayes Rule is:
-
-$P(\textrm{X}|\textrm{Y}) = \frac{P(\textrm{Y}|\textrm{X}) \times P(\textrm{X})}{P(\textrm{Y})}$
-
-# Naive Bayes for text classification.
-
-To build a classifier, we will first start by creating conditional probabilities given the following table:
-
- ![](images/freq-table-bayes.png)
-
- This allows us to compute the table of probabilities:
-
- ![](images/prob-table-bayes.png)
-
- Once you have the probabilities, you can compute the likelihood score as follows:
+The co-occurrence of two different words is the number of times that they appear in your corpus together within a certain word distance $K$.
 
 
- ![](images/likelihood-bayes.png)
+![](images/word-by-word-k-2.png)
+
+You can now apply the same concept and map words to documents. The rows could correspond to words and the columns to documents. The numbers in the matrix correspond to the number of times each word showed up in the document.
+
+![](images/word-by-doc-1.png)
+
+You can represent the entertainment category, as a vector $v=[500,7000]$. You can then also compare categories as follows by doing a simple plot.
+
+![](images/word-by-doc-2.png)
+
+# Similarity Measures
+
+In statistics and related fields, a similarity measure or similarity function or similarity metric is a real-valued function that quantifies the similarity between two objects. Although no single definition of a similarity exists, usually such measures are in some sense the inverse of distance metrics: they take on large values for similar objects and either zero or a negative value for very dissimilar objects. Though, in more broad terms, a similarity function may also satisfy metric axioms.
+
+## Euclidian distance
+
+Let us assume that you want to compute the distance between two points: A,B. To do so, you can use the euclidean distance defined as:
+
+$$
+d(B,A) = \sqrt{(B_{1}-A_{1})^2+(B_{2}-A_{2})^2}
+$$
+
+Taking into account the text corpus of the previous example we can calculate the distance between this to corpus as follows:
+
+![](images/euclidian-distance.png)
+
+You can generalize finding the distance between the two points (A,B) to the distance between an n dimensional vector as follows:
+
+$$
+d(\vec{v},\vec{w}) = \sqrt{\sum_{i=1}^{n} (v_{i}-w_{i})^2}
+$$
+
+Here is an example where I calculate the distance between 2 vectors ($n=3$).
+
+![](images/euclidian-distance-example.png)
+
+### Problems with euclidian distance
+
+Suppose that you are in a vector space where the corpora are represented by the occurrence of the words disease and eggs. Here's the representation of a food corpus, and agriculture corpus, and the history corpus. Each one of these corpora have texts related to that subject. But you know that the word totals in the corpora differ from one another. In fact, the agriculture and the history corpus have a similar number of words, while the food corpus has a relatively small number. Let's define the Euclidean distance between the food and the agriculture corpus as $d_1$ and let's the Euclidean distance between the agriculture and the history corpus be $d_2$. As you can see, the distance $d_2$ is smaller than the distance $d_1$, which would suggest that the agriculture and history corpora are more similar than the agriculture and food corpora.
+
+![](images/euclidian-distance-problems.png)
+
+## Cosine Similarity
+
+Cosine similarity is another type of similarity function. Following the example below you can see that  the angle Alpha between food and agriculture is smaller than the angle Beta between agriculture and history.
+
+![](images/cosine-distance.png)
+
+In this particular case, the cosine of those angles is a better proxy of similarity between these vector representations than their Euclidean distance. Formally we need to link the angle mentioned with some basic algebra. For that we will use the vector norm and the dot product.
+
+The vector norm is defined as:
+
+$$
+\mid \vec{v} \mid = \sqrt{\sum_{i=1}^{n} (\mid v_{i} \mid)^2}
+$$
+
+The dot product is defined as:
+
+$$
+\vec{v} \vec{w} = \sum_{i=1}^{n} v_{i} \dot w_{i}
+$$
+
+We also now that the dot product can be defined as:
+
+$$
+\hat{v} \hat{w} = {\mid \mid  \hat{v} \mid \mid}  \mid \mid \hat{w} \mid \mid cos(\beta)
+$$
+
+If the cosine similarity is = 1 it means the vectors are equal. If the cosine similarity is 0 it means that the vectors are perpendicular.
+
+![](images/example-cosine-distance-calculation.png)
+
+## Manipulating Words in Vector Spaces
 
 
-A score greater than 1 indicates that the class is positive, otherwise it is negative.
 
-## Laplacian Smoothing.
-
-Sometimes you try to calculate the probability of a word happening after a word. To do that you might want to count the number of times those two words showed up. One after another, divided by the number of times the first word appeared. Now what if the two words never showed up next to each other in the training corpus. You get a probability of zero, and the probability of an entire sequence might go to zero.
-
-Laplacian smoothing, a technique you can use to avoid your probabilities being zero. The expression used to calculate the conditional probability of a word given the class is the frequency of the word in the corpus:
-
-$P({w_i}|class) = \frac{freq(w_{i}, class)}{N_{class}}$
-
-However, if a word does not appear in the training, then it automatically gets a probability of 0, to fix this we add smoothing as follows:
-
-$P({w_i}|class) = \frac{freq(w_{i}, class) + 1}{N_{class} + V_{class}}$
-
-Where $N_{class}$ is the frequency of all words in class and $V_{class}$ is the number of unique words in a class.
-
-## Log Likelihood
-
-To compute the log likelihood, we need to get the ratios and use them to compute a score that will allow us to decide whether a tweet is positive or negative. The higher the ratio, the more positive the word is:
-
-
- ![](images/log-likelihood-ratio.png)
-
-
-To do inference, you can compute the following:
-
- ![](images/prior-ratio.png)
-
-As m gets larger, we can get numerical flow issues, so we introduce the
-log, which gives you the following equation:
-
- ![](images/log-prior-ratio.png)
-
-The first component is called the log prior and the second component is the log likelihood. We further introduce λ as follows:
-
- ![](images/lambda-dict.png)
-
-Having the $\lambda$ dictionary will help a lot when doing inference. An example of this inference logic can be found below:
-
- ![](images/lambda-inference-example.png)
-
- ## Training Naive Bayes
-
- The following algorithm is used to train a Naive Bayes model:
-
- 1. Get or annotate a dataset with positive and negative tweets
- 2. Preprocess the text according to the classical preprocessing rules we have described in lecture 1 (lowercasing, remove punctuation, remove urls, remove names, stop words, stemming, lemmas, tokenization)
- 3. Compute the $freq(w_{i}, class)$ with the sum of words $N_{class}$ for every class.
- 4. Get the conditional probabilities for every word and each class.
- 5. Calculate the $\lambda$ of every word in the frquency table.
- 6. Get the log prior las $logprior=log(\frac{P(pos)}/{P(neg)})$
-
- ## Naive Bayes assumptions
-
- Naïve bayes is a very simple model because it doesn't require setting any custom parameters. This method is referred to as naïve, because of the assumptions it makes about the data. The first assumption is independence between the predictors or features associated with each class. And the second, has to do with your validation set. Let's explore each of these assumptions and how they could affect your results. To illustrate what independence between features looks like, let's look at the following sentence.
-
- ![](images/assumptions-bayes.png)
-
- In the first image, you can see the word sunny and hot tend to depend on each other and are correlated to a certain extent with the word "desert". Naive Bayes assumes independence throughout. Furthermore, if you were to fill in the sentence on the right, this naive model will assign equal weight to the words "spring, summer, fall, winter".
+# PCA

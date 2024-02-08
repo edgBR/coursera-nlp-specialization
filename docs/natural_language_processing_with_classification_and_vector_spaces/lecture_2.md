@@ -1,4 +1,4 @@
-# Vector Space Models
+# Sentiment Analysis with Naïve Bayes
 
 
 - [<span class="toc-section-number">1</span> Probability and Bayes
@@ -11,10 +11,6 @@
     Smoothing.](#laplacian-smoothing)
   - [<span class="toc-section-number">3.2</span> Log
     Likelihood](#log-likelihood)
-  - [<span class="toc-section-number">3.3</span> Training Naive
-    Bayes](#training-naive-bayes)
-  - [<span class="toc-section-number">3.4</span> Naive Bayes
-    assumptions](#naive-bayes-assumptions)
 
 # Probability and Bayes rules
 
@@ -134,12 +130,12 @@ or negative. The higher the ratio, the more positive the word is:
 
 To do inference, you can compute the following:
 
-![](images/prior-ratio.PNG)
+![](images/prior-ratio.png)
 
 As m gets larger, we can get numerical flow issues, so we introduce the
 log, which gives you the following equation:
 
-![](images/log-prior-ratio.PNG)
+![](images/log-prior-ratio.png)
 
 The first component is called the log prior and the second component is
 the log likelihood. We further introduce λ as follows:
@@ -151,7 +147,7 @@ example of this inference logic can be found below:
 
 ![](images/lambda-inference-example.png)
 
-## Training Naive Bayes
+\## Training Naive Bayes
 
 The following algorithm is used to train a Naive Bayes model:
 
@@ -166,7 +162,7 @@ The following algorithm is used to train a Naive Bayes model:
 5.  Calculate the $\lambda$ of every word in the frquency table.
 6.  Get the log prior las $logprior=log(\frac{P(pos)}/{P(neg)})$
 
-## Naive Bayes assumptions
+\## Naive Bayes assumptions
 
 Naïve bayes is a very simple model because it doesn’t require setting
 any custom parameters. This method is referred to as naïve, because of
