@@ -109,6 +109,394 @@ If the cosine similarity is = 1 it means the vectors are equal. If the cosine si
 
 ## Manipulating Words in Vector Spaces
 
+Suppose that you have a vector space with countries and their capital cities. You know that the capital of the United States is Washington DC, and you don't know the capital of Russia. But you'd like to use the known relationship between Washington DC and the USA to figure it out.
 
+![](images/moscu-distance.png)
+
+In this case the predicted position Moscow will be (10,4) meanwhile the real position is (9,3). The distance between the predicted position using the most similar vector pair and the real one will be $\sqrt{2}$
+
+Lets practice with a more realistic example. We will load the word_embeddings pickle file which contains 243 words as well as their respective representation.
+
+```{python}
+import pandas as pd
+import numpy as np
+import pickle
+
+word_embeddings = pickle.load( open( "word_embeddings_subset.p", "rb" ) )
+```
+
+Now that the model is loaded, we can take a look at the word representations. First, note that word_embeddings is a dictionary. Each word is the key to the entry, and the value is its corresponding vector presentation. Remember that square brackets allow access to any entry if the key exists.
+
+```{python}
+countryVector = word_embeddings['country'] # Get the vector representation for the word 'country'
+print(type(countryVector)) # Print the type of the vector. Note it is a numpy array
+print(countryVector) # Print the values of the vector.
+
+```
+
+It is important to note that we store each vector as a NumPy array. It allows us to use the linear algebra operations on it.
+
+The vectors have a size of 300, while the vocabulary size of Google News is around 3 million words!
+
+```{python}
+#Get the vector for a given word:
+def vec(w):
+    return word_embeddings[w]
+
+```
+
+Word embeddings are the result of machine learning processes and will be part of the input for further processes. These word embedding needs to be validated or at least understood because the performance of the derived model will strongly depend on its quality.
+
+Word embeddings are multidimensional arrays, usually with hundreds of attributes that pose a challenge for its interpretation.
+
+```{python}
+import matplotlib.pyplot as plt # Import matplotlib
+import seaborn as sns
+sns.set_theme()
+
+words = ['oil', 'gas', 'happy', 'sad', 'city', 'town', 'village', 'country', 'continent', 'petroleum', 'joyful']
+
+bag2d = np.array([vec(word) for word in words]) # Convert each word to its vector representation
+
+fig, ax = plt.subplots(figsize = (10, 10)) # Create custom size image
+
+col1 = 3 # Select the column for the x axis
+col2 = 2 # Select the column for the y axis
+
+# Print an arrow for each word
+for word in bag2d:
+    ax.arrow(0, 0, word[col1], word[col2], head_width=0.005, head_length=0.005, fc='r', ec='r', width = 1e-5)
+
+
+ax.scatter(bag2d[:, col1], bag2d[:, col2]); # Plot a dot for each word
+
+# Add the word label over each dot in the scatter plot
+for i in range(0, len(words)):
+    ax.annotate(words[i], (bag2d[i, col1], bag2d[i, col2]))
+
+
+plt.show()
+```
+
+Note that similar words like 'village' and 'town' or 'petroleum', 'oil', and 'gas' tend to point in the same direction. Also, note that 'sad' and 'happy' looks close to each other; however, the vectors point in opposite directions.
+
+### Word Distance
+
+Now plot the words 'sad', 'happy', 'town', and 'village'. In this same chart, display the vector from 'village' to 'town' and the vector from 'sad' to 'happy'. Let us use NumPy for these linear algebra operations.
+
+```{python}
+words = ['sad', 'happy', 'town', 'village']
+
+bag2d = np.array([vec(word) for word in words]) # Convert each word to its vector representation
+
+fig, ax = plt.subplots(figsize = (10, 10)) # Create custom size image
+
+col1 = 3 # Select the column for the x axe
+col2 = 2 # Select the column for the y axe
+
+# Print an arrow for each word
+for word in bag2d:
+    ax.arrow(0, 0, word[col1], word[col2], head_width=0.0005, head_length=0.0005, fc='r', ec='r', width = 1e-5)
+
+# print the vector difference between village and town
+village = vec('village')
+town = vec('town')
+diff = town - village
+ax.arrow(village[col1], village[col2], diff[col1], diff[col2], fc='b', ec='b', width = 1e-5)
+
+# print the vector difference between village and town
+sad = vec('sad')
+happy = vec('happy')
+diff = happy - sad
+ax.arrow(sad[col1], sad[col2], diff[col1], diff[col2], fc='b', ec='b', width = 1e-5)
+
+
+ax.scatter(bag2d[:, col1], bag2d[:, col2]); # Plot a dot for each word
+
+# Add the word label over each dot in the scatter plot
+for i in range(0, len(words)):
+    ax.annotate(words[i], (bag2d[i, col1], bag2d[i, col2]))
+
+
+plt.show()
+
+```
+
+We can also get the norm of a word in the word embedding:
+
+```{python}
+print(np.linalg.norm(vec('town'))) # Print the norm of the word town
+print(np.linalg.norm(vec('sad'))) # Print the norm of the word sad
+
+```
+
+
+Now, applying vector difference and addition, one can create a vector representation for a new word. For example, we can say that the vector difference between 'France' and 'Paris' represents the concept of Capital.
+
+One can move from the city of Madrid in the direction of the concept of Capital, and obtain something close to the corresponding country to which Madrid is the Capital.
+
+```{python}
+capital = vec('France') - vec('Paris')
+country = vec('Madrid') + capital
+
+print(country[0:5]) # Print the first 5 values of the vector
+
+```
+
+We can observe that the vector 'country' that we expected to be the same as the vector for Spain is not exactly it.
+
+```{python}
+diff = country - vec('Spain')
+print(diff[0:10])
+```
+
+So, we have to look for the closest words in the embedding that matches the candidate country. If the word embedding works as expected, the most similar word must be 'Spain'. Let us define a function that helps us to do it. We will store our word embedding as a DataFrame, which facilitate the lookup operations based on the numerical vectors.
+
+```{python}
+keys = word_embeddings.keys()
+data = []
+for key in keys:
+    data.append(word_embeddings[key])
+
+embedding = pd.DataFrame(data=data, index=keys)
+# Define a function to find the closest word to a vector:
+def find_closest_word(v, k = 1):
+    # Calculate the vector difference from each word to the input vector
+    diff = embedding.values - v
+    # Get the squared L2 norm of each difference vector.
+    # It means the squared euclidean distance from each word to the input vector
+    delta = np.sum(diff * diff, axis=1)
+    # Find the index of the minimun distance in the array
+    i = np.argmin(delta)
+    # Return the row name for this item
+    return embedding.iloc[i].name
+
+embedding.head(8)
+
+```
+
+Now let us find the name that corresponds to our numerical country:
+
+```{python}
+find_closest_word(country)
+
+```
+
+For other countries:
+
+```{python}
+print(find_closest_word(vec('Berlin') + capital))
+print(find_closest_word(vec('Beijing') + capital))
+
+```
+
+And finally you can also use the concept to represent a whole sentence:
+
+```{python}
+
+doc = "Venezuela petroleum king"
+vdoc = [vec(x) for x in doc.split(" ")]
+doc2vec = np.sum(vdoc, axis = 0)
+doc2vec
+```
+
+```{python}
+find_closest_word(doc2vec)
+
+```
 
 # PCA
+
+When you have a representation of your words in a high dimensional space, you could use an algorithm like PCA to get a representation on a vector space with fewer dimensions. If you want to visualize your data, you can get a reduced representation with three or fewer features. If you perform principal component analysis on your data and get a two dimensional representation, you can then plot a visual of your words. In this case, you might find that your initial representation captured the relationship between the words oil and gas and city and town. Because in your two dimensional space they appear to be clustered with related words.
+
+![](images/multiple-dimensions-word-embeddings.png)
+
+
+Note that when doing PCA on this data, you will see that oil & gas are close to one another and town & city are also close to one another. To plot the data you can use PCA to go from $d>2 to d=2$.
+
+The PCA algorithm is described as follows:
+
+
+![](images/pca-algorithm.png)
+
+1. Mean normalize your data.
+2. Compute the covariance matrix.
+3. Compute the SVD (Singular Value Decomposition) on your covariance. This returns $[USV] = svd(\sum)$. The three matrices U, S, V are drawn above. U is labelled with eigenvectors, and S is labelled with eigenvalues.
+4. You can then use the first $n$ columns of vector U, to get your new data by multiplying $XU[:,0 : n]$
+
+PCA is based on the Singular Value Decomposition (SVD) of the Covariance Matrix of the original dataset. The Eigenvectors of such decomposition are used as a rotation matrix. The Eigenvectors are arranged in the rotation matrix in decreasing order according to its explained variance. This last term is related to the EigenValues of the SVD. In this case, we are going to use the concept of rotation matrices applied to correlated random data, just as illustrated in the next picture.
+
+![](images/gaussian-scatter-pca.svg)
+
+
+To start, let us consider a pair of random variables x, y. Consider the base case when y = n * x. The x and y variables will be perfectly correlated to each other since y is just a scaling of x.
+
+```{python}
+
+import numpy as np                         # Linear algebra library
+import matplotlib.pyplot as plt            # library for visualization
+import seaborn as sns
+from sklearn.decomposition import PCA      # PCA library
+import pandas as pd                        # Data frame library
+import math                                # Library for math functions
+import random                              # Library for pseudo random numbers
+sns.set_theme()
+np.random.seed(1)
+n = 1  # The amount of the correlation
+x = np.random.uniform(1,2,1000) # Generate 1000 samples from a uniform random variable
+y = x.copy() * n # Make y = n * x
+
+# PCA works better if the data is centered
+x = x - np.mean(x) # Center x. Remove its mean
+y = y - np.mean(y) # Center y. Remove its mean
+
+data = pd.DataFrame({'x': x, 'y': y}) # Create a data frame with x and y
+plt.scatter(data.x, data.y) # Plot the original correlated data in blue
+
+pca = PCA(n_components=2) # Instantiate a PCA. Choose to get 2 output variables
+
+# Create the transformation model for this data. Internally, it gets the rotation
+# matrix and the explained variance
+pcaTr = pca.fit(data)
+
+rotatedData = pcaTr.transform(data) # Transform the data base on the rotation matrix of pcaTr
+# # Create a data frame with the new variables. We call these new variables PC1 and PC2
+dataPCA = pd.DataFrame(data = rotatedData, columns = ['PC1', 'PC2'])
+
+# Plot the transformed data in orange
+plt.scatter(dataPCA.PC1, dataPCA.PC2)
+plt.show()
+
+```
+
+Now, what is the direction in which the variables point?
+
+As mentioned before, a PCA model is composed of a rotation matrix and its corresponding explained variance.
+
+- pcaTr.components_ has the rotation matrix
+- pcaTr.explained_variance_ has the explained variance of each principal component
+
+
+```{python}
+print('Eigenvectors or principal component: First row must be in the direction of [1, n]')
+print(pcaTr.components_)
+
+print()
+print('Eigenvalues or explained variance')
+print(pcaTr.explained_variance_)
+```
+
+Is not a coincidence that the values of the eigenvectors are 0.7071 as they correspond to $cos(45)$. In this case the rotation matrix is:
+
+$$
+R = \begin{bmatrix} cos(45^o) & sin(45^o) \\ -sin(45^o) & cos(45^o) \end{bmatrix}
+$$
+
+And $45$ is the same angle that the variables form as y= 1*x. Then, PCA has identified the angle in which point the original variables.
+
+And the explained Variance is around [0.166 0]. Remember that the Variance of a uniform random variable $x ~ U(1, 2)$, as our x and y, is equal to:
+
+$Var(x) = \frac {(2 - 1)^2}{12} = 0.083333$
+
+Then the explained variance given by the PCA can be interpret as:
+
+$[Var(x) + Var(y),  \ 0] = [0.0833 + 0.0833, \ 0] = [0.166, \ 0]$
+
+Which means that all the explained variance of our new system is explained by our first principal component.
+
+## Correlated Normal Random Variables.
+
+Now, we will use a controlled dataset composed of 2 random variables with different variances and with a specific Covariance among them. The only way I know to get such a dataset is, first, create two independent Normal random variables with the desired variances and then combine them using a rotation matrix. In this way, the new resulting variables will be a linear combination of the original random variables and thus be dependent and correlated.
+
+
+```{python}
+import matplotlib.lines as mlines
+import matplotlib.transforms as mtransforms
+import seaborn as sns
+sns.set_theme()
+
+np.random.seed(100)
+
+std1 = 1     # The desired standard deviation of our first random variable
+std2 = 0.333 # The desired standard deviation of our second random variable
+
+x = np.random.normal(0, std1, 1000) # Get 1000 samples from x ~ N(0, std1)
+y = np.random.normal(0, std2, 1000)  # Get 1000 samples from y ~ N(0, std2)
+#y = y + np.random.normal(0,1,1000)*noiseLevel * np.sin(0.78)
+
+# PCA works better if the data is centered
+x = x - np.mean(x) # Center x
+y = y - np.mean(y) # Center y
+
+#Define a pair of dependent variables with a desired amount of covariance
+n = 1 # Magnitude of covariance.
+angle = np.arctan(1 / n) # Convert the covariance to and angle
+print('angle: ',  angle * 180 / math.pi)
+
+# Create a rotation matrix using the given angle
+rotationMatrix = np.array([[np.cos(angle), np.sin(angle)],
+                 [-np.sin(angle), np.cos(angle)]])
+
+
+print('rotationMatrix')
+print(rotationMatrix)
+
+xy = np.concatenate(([x] , [y]), axis=0).T # Create a matrix with columns x and y
+
+# Transform the data using the rotation matrix. It correlates the two variables
+data = np.dot(xy, rotationMatrix) # Return a nD array
+
+# Print the rotated data
+plt.scatter(data[:,0], data[:,1])
+plt.show()
+```
+
+Let us print the original and the resulting transformed system using the result of the PCA in the same plot alongside with the 2 Principal Component vectors in red and blue
+
+```{python}
+plt.scatter(data[:,0], data[:,1]) # Print the original data in blue
+
+# Apply PCA. In theory, the Eigenvector matrix must be the
+# inverse of the original rotationMatrix.
+pca = PCA(n_components=2)  # Instantiate a PCA. Choose to get 2 output variables
+
+# Create the transformation model for this data. Internally it gets the rotation
+# matrix and the explained variance
+pcaTr = pca.fit(data)
+
+# Create an array with the transformed data
+dataPCA = pcaTr.transform(data)
+
+print('Eigenvectors or principal component: First row must be in the direction of [1, n]')
+print(pcaTr.components_)
+
+print()
+print('Eigenvalues or explained variance')
+print(pcaTr.explained_variance_)
+
+# Print the rotated data
+plt.scatter(dataPCA[:,0], dataPCA[:,1])
+
+# Plot the first component axe. Use the explained variance to scale the vector
+plt.plot([0, rotationMatrix[0][0] * std1 * 3], [0, rotationMatrix[0][1] * std1 * 3], 'k-', color='red')
+# Plot the second component axe. Use the explained variance to scale the vector
+plt.plot([0, rotationMatrix[1][0] * std2 * 3], [0, rotationMatrix[1][1] * std2 * 3], 'k-', color='green')
+
+plt.show()
+```
+
+The explanation of this chart is as follows:
+
+- The rotation matrix used to create our correlated variables took the original uncorrelated variables x and y and transformed them into the blue points.
+- The PCA transformation finds out the rotation matrix used to create our correlated variables (blue points). Using the PCA model to transform our data, puts back the variables as our original uncorrelated variables.
+- The explained Variance of the PCA is
+
+$[1.0094, 0.1125]$
+
+Which is approximately:
+
+$[1, 0.333 * 0.333] = [std1^2, std2^2]$
+
+Which are the parameters of our original random variables x and y.
+
+For information about how the roation matrix is derived you can check the following [article](https://en.wikipedia.org/wiki/Rotation_matrix#In_two_dimensions)
