@@ -80,7 +80,7 @@ def basic_hash_table(value_l, n_buckets):
         hash_table[hash_value].append(value)
     return hash_table
 
-print(test = basic_hash_table([14,10,17,100,97], 10))
+print(basic_hash_table([14,10,17,100,97], 10))
 ```
 
 
