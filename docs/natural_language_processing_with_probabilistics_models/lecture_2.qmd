@@ -1,0 +1,55 @@
+---
+title: "Part of Speech Tagging"
+jupyter: "nlp-python-kernel"
+format:
+#   html:
+#     toc: true
+#     toc-depth: 3
+#     toc-location: left
+#     number-sections: true
+#     number-depth: 3
+#     html-math-method: katex
+#     css: styles.css
+  gfm:
+      html-math-method: katex
+      toc: true
+      toc-depth: 3
+      number-sections: true
+      number-depth: 3
+---
+
+\newpage
+
+# Speech Tagging
+
+ First, we will go over what parts of speech tagging is. Then we will show you how to use so-called Markov chains and hidden Markov models to create parts of speech tags for your text corpus. Next, I will introduce the Viterbi algorithm and demonstrate how it's used in hidden Markov models. You will get to try this on your own with an example. You're going to apply all of these skills in this week's coding assignments. It's a big week, so let's get started. Part of speech refers to the category of words or the lexical terms in a language. Examples of these lexical terms in the English language would be noun, verb, adjective, adverb, pronoun, preposition although there are many others.
+
+ The process of assigning these tags to the words of a sentence or your corpus is referred to as parts of speech tagging or POS, tagging for shorts. Because POS tags describe the characteristic structure of lexical terms in a sentence or text, you can use them to make assumptions about semantics. They're used for identifying named entities too. In a sentence such as the Eiffel Tower is located in Paris, Eiffel Tower and Paris are both named entities.
+
+ ![](images/speech-tagging-example.png)
+
+ # Markov Chains
+
+Markov Chains are a type of stochastic model that describes a sequence of possible events. To get the probability for each event, it needs only the states of the previous events. The word stochastic just means random or randomness. So a stochastic model, incorporates and models processes does have a random component to them.
+
+You can use Markov chains to identify the probability of the next word. For example below, you can see that the most likely word after a verb is a noun.
+
+![](images/markov-chain-1.png)
+
+To properly model the probabilities we need to identify the probabilities of the POS tags and for the words.
+
+![](images/markov-chain-2.png)
+
+The circles of the graph represent the states of your model. A state refers to a certain condition of the present moment.  You can think of these as the POS tags of the current word. In this case $Q = {q_1, q_2, q_3}$ is the set of all states in your model.
+
+If you think about a sentence as a sequence of words with associated part of speech tags.  You can represent that sequence with a graph. Where the parts of speech tags are events that can occur. Depicted by the state of our model graph. In this example, NN is for announce, VB is for verbs. And other, stands for all other tags. The edges of the graph have weights or transition probabilities associated with them.
+
+![](images/transition-probabilities.png)
+
+In the diagram above, the blue circles correspond to the part of speech tags, and the arrows correspond to the transition probabilities from one part of speech to another. You can populate the table on the right from the diagram on the left. The first row in your A matrix corresponds to the initial distribution among all the states. According to the table, the sentence has a 40% chance to start as a noun, 10% chance to start with a verb, and a 50% chance to start with another part of speech tag.
+
+In more general notation, you can write the transition matrix A, given some states Q, as follows:
+
+ ![](images/states-matrix.png)
+
+# Hidden Markov Models

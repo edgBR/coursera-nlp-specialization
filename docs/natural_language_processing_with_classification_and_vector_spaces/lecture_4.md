@@ -212,6 +212,112 @@ divide up the vector space. So why not create multiple sets of random
 planes. So that you can divide up the vector space into multiple
 independent sets of hash tables.
 
+Lets implement as baseline a standard KNN search:
+
+``` python
+import numpy as np
+rng = np.random.default_rng(0)
+
+m = 10000  # number of data points in the
+n = 128    # number of features in each data point
+
+X = rng.normal(size=(m, n))  # random dataset
+q = rng.normal(size=n)       # query vector
+
+def knn_search(query, data, k=5, debug=False):
+    assert k <= len(data)
+    dists = np.linalg.norm(x=query-data, axis=1)  # euclidean distance
+    if debug:
+        print("[DEBUG] max dist =", np.max(dists))
+        print("[DEBUG] min dist =", np.min(dists))
+        print("[DEBUG] mean dist =", np.mean(dists))
+    inds = np.argsort(dists)  # sorted in ascending order
+    inds_k = inds[:k]         # top k closest data points
+    # NOTE: optionally, if the argumet dataset has a set of labels, we can also
+    # associate the query vector with a label (i.e., classification).
+    return data[inds_k], dists[inds_k]
+
+neighbors, dists = knn_search(q, X, debug=False)  # set debug=True for additional information
+for i, (neighbor, dist) in enumerate(zip(neighbors, dists)):
+    print(f"top {i + 1}: dist = {dist}")
+```
+
+    top 1: dist = 12.72876479759339
+    top 2: dist = 12.980832845009397
+    top 3: dist = 13.109098301375685
+    top 4: dist = 13.178447300861382
+    top 5: dist = 13.248307679497904
+
+Now lets build an ANN algorithm using LSH (locality sensitive hashing)
+which maps a numerical vector to a hash value (an integer) with a set of
+random hyperplanes. As discussed, the main idea of the technique is to
+split the input data space with a plane and determine whether the data
+point belongs above (1) or below (0) the plane. By repeating this
+technique times, each data point can be encoded to a binary string of
+length. For the purpose of building a hash table, we convert these
+binary strings to decimal values.
+
+``` python
+def hamming_hash(data, hyperplanes):
+    b = len(hyperplanes) # number of planes
+    hash_key = (np.dot(data, hyperplanes.T)) >= 0 # equivalent to sign of dot product
+    dec_vals = np.array([2 ** i for i in range(b)], dtype=int) # hash value
+    hash_key = np.dot(hash_key, dec_vals)
+    return hash_key
+
+def generate_hyperplanes(data, bucket_size=16):
+    m = data.shape[0]            # number of data points
+    n = data.shape[1]            # number of features in a data point
+    b = m // bucket_size         # desired number of hash buckets
+    h = int(np.log2(b))          # desired number of hyperplanes
+    H = rng.normal(size=(h, n))  # hyperplanes as their normal vectors
+    return H
+
+def locality_sensitive_hash(data, hyperplanes):
+    hash_vals = hamming_hash(data, hyperplanes)
+    hash_table = {}
+    for i, v in enumerate(hash_vals):
+        if v not in hash_table:
+            hash_table[v] = set()
+        hash_table[v].add(i)
+    return hash_table
+
+hyperplanes = generate_hyperplanes(X)
+hash_table = locality_sensitive_hash(X, hyperplanes)
+avg_bucket_size = np.mean([len(v) for v in hash_table.values()])
+print("avg_bucket_size =", avg_bucket_size)
+```
+
+    avg_bucket_size = 19.53125
+
+Now we implement ANN:
+
+``` python
+def approx_knn_search(query, data, k=5, bucket_size=16, repeat=10, debug=False):
+    candidates = set()
+    for i in range(repeat): #equivalent to number of universes
+        hyperplanes = generate_hyperplanes(data)
+        hash_table = locality_sensitive_hash(data, hyperplanes)
+        if debug:
+            avg_bucket_size = np.mean([len(v) for v in hash_table.values()])
+            print(f"[DEBUG] i = {i}, avg_bucket_size = {avg_bucket_size}")
+        query_hash = hamming_hash(query, hyperplanes)
+        if query_hash in hash_table:
+            candidates = candidates.union(hash_table[query_hash])
+    candidates = np.stack([data[i] for i in candidates], axis=0)
+    return knn_search(query, candidates, k=k, debug=debug)
+
+neighbors, dists = approx_knn_search(q, X, repeat=24, debug=False)  # set debug=True for additional information
+for i, (neighbor, dist) in enumerate(zip(neighbors, dists)):
+    print(f"top {i + 1}: dist = {dist}")
+```
+
+    top 1: dist = 12.980832845009397
+    top 2: dist = 13.315716707872218
+    top 3: dist = 13.599262272317079
+    top 4: dist = 13.77326305995105
+    top 5: dist = 13.810928200015331
+
 ## Searching Documents
 
 Let’s say you have these documents composed of three words. I love
