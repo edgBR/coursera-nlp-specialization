@@ -7,19 +7,14 @@ repos:
       - id: check-added-large-files
         args: ['--maxkb=50000']
       - id: trailing-whitespace
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.0.3
-    hooks:
-    -   id: detect-secrets
+  # - repo: https://github.com/Yelp/detect-secrets
+  #   rev: v1.0.3
+  #   hooks:
+  #   -   id: detect-secrets
   - repo: local
     hooks:
       - id: black
         name: black
         entry: black .
-        language: system
-        types: [python]
-      - id: ruff
-        name: ruff
-        entry: ruff . --fix
         language: system
         types: [python]

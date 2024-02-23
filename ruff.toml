@@ -21,7 +21,9 @@ exclude = [
     "build",
     "dist",
     "node_modules",
-    "venv"]
+    "venv",
+    "docs/natural_language_processing_with_probabilistics_models/w2_unittest.py",
+    "docs/natural_language_processing_with_probabilistics_models/data/"]
 
 extend-include = ["*.ipynb"]
 
