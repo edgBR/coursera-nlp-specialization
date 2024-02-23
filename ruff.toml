@@ -53,6 +53,8 @@ ignore = [
     "C901",  # too complex
     "D401", # not important for us (yet)
     "D104", # not important for us (opinon: not useful)
+    "PLW2901", # coursera code sucks
+    "D205", # coursera code sucks
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
