@@ -23,6 +23,7 @@ exclude = [
     "node_modules",
     "venv",
     "docs/natural_language_processing_with_probabilistics_models/w2_unittest.py",
+    "docs/natural_language_processing_with_probabilistics_models/w3_unittest.py",
     "docs/natural_language_processing_with_probabilistics_models/data/"]
 
 extend-include = ["*.ipynb"]
@@ -47,7 +48,6 @@ select = [
     "C",  # flake8-comprehensions
     "B",  # flake8-bugbear
     "N",  # PEP8 naming
-    "S",  # Bandit
     "PL", # Pylint
 ]
 ignore = [
@@ -57,6 +57,8 @@ ignore = [
     "D104", # not important for us (opinon: not useful)
     "PLW2901", # coursera code sucks
     "D205", # coursera code sucks
+    "E722",
+
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.

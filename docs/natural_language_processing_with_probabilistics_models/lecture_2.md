@@ -3,17 +3,19 @@
 
 - [<span class="toc-section-number">1</span> Speech
   Tagging](#speech-tagging)
-- [<span class="toc-section-number">2</span> Hidden Markov
+- [<span class="toc-section-number">2</span> Markov
+  Chains](#markov-chains)
+- [<span class="toc-section-number">3</span> Hidden Markov
   Models](#hidden-markov-models)
-  - [<span class="toc-section-number">2.1</span> Transition and Emission
+  - [<span class="toc-section-number">3.1</span> Transition and Emission
     Probabilities](#transition-and-emission-probabilities)
-- [<span class="toc-section-number">3</span> Viterbi
+- [<span class="toc-section-number">4</span> Viterbi
   algorithm](#viterbi-algorithm)
-  - [<span class="toc-section-number">3.1</span> Viterbi
+  - [<span class="toc-section-number">4.1</span> Viterbi
     Initialization](#viterbi-initialization)
-  - [<span class="toc-section-number">3.2</span> Viterbi
+  - [<span class="toc-section-number">4.2</span> Viterbi
     Forward-Pass](#viterbi-forward-pass)
-  - [<span class="toc-section-number">3.3</span> Viterbi
+  - [<span class="toc-section-number">4.3</span> Viterbi
     Backbard-Pass](#viterbi-backbard-pass)
 
 # Speech Tagging
@@ -39,7 +41,7 @@ Tower and Paris are both named entities.
 
 ![](images/speech-tagging-example.png)
 
-\# Markov Chains
+# Markov Chains
 
 Markov Chains are a type of stochastic model that describes a sequence
 of possible events. To get the probability for each event, it needs only

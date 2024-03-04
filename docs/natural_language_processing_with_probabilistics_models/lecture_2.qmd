@@ -22,13 +22,13 @@ format:
 
 # Speech Tagging
 
- First, we will go over what parts of speech tagging is. Then we will show you how to use so-called Markov chains and hidden Markov models to create parts of speech tags for your text corpus. Next, I will introduce the Viterbi algorithm and demonstrate how it's used in hidden Markov models. You will get to try this on your own with an example. You're going to apply all of these skills in this week's coding assignments. It's a big week, so let's get started. Part of speech refers to the category of words or the lexical terms in a language. Examples of these lexical terms in the English language would be noun, verb, adjective, adverb, pronoun, preposition although there are many others.
+First, we will go over what parts of speech tagging is. Then we will show you how to use so-called Markov chains and hidden Markov models to create parts of speech tags for your text corpus. Next, I will introduce the Viterbi algorithm and demonstrate how it's used in hidden Markov models. You will get to try this on your own with an example. You're going to apply all of these skills in this week's coding assignments. It's a big week, so let's get started. Part of speech refers to the category of words or the lexical terms in a language. Examples of these lexical terms in the English language would be noun, verb, adjective, adverb, pronoun, preposition although there are many others.
 
- The process of assigning these tags to the words of a sentence or your corpus is referred to as parts of speech tagging or POS, tagging for shorts. Because POS tags describe the characteristic structure of lexical terms in a sentence or text, you can use them to make assumptions about semantics. They're used for identifying named entities too. In a sentence such as the Eiffel Tower is located in Paris, Eiffel Tower and Paris are both named entities.
+The process of assigning these tags to the words of a sentence or your corpus is referred to as parts of speech tagging or POS, tagging for shorts. Because POS tags describe the characteristic structure of lexical terms in a sentence or text, you can use them to make assumptions about semantics. They're used for identifying named entities too. In a sentence such as the Eiffel Tower is located in Paris, Eiffel Tower and Paris are both named entities.
 
- ![](images/speech-tagging-example.png)
+![](images/speech-tagging-example.png)
 
- # Markov Chains
+# Markov Chains
 
 Markov Chains are a type of stochastic model that describes a sequence of possible events. To get the probability for each event, it needs only the states of the previous events. The word stochastic just means random or randomness. So a stochastic model, incorporates and models processes does have a random component to them.
 
