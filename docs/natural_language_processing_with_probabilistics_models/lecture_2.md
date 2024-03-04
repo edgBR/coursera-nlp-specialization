@@ -1,6 +1,5 @@
 # Part of Speech Tagging
 
-
 - [<span class="toc-section-number">1</span> Speech
   Tagging](#speech-tagging)
 - [<span class="toc-section-number">2</span> Markov
@@ -322,7 +321,7 @@ print_matrix(t_matrix_for)
     RB   0.102992  8.804673  0.245972
     TO   0.784188  0.213675  6.843752
 
-    /tmp/ipykernel_65047/3844801661.py:15: DeprecationWarning:
+    /tmp/ipykernel_17890/3844801661.py:15: DeprecationWarning:
 
     Conversion of an array with ndim > 0 to a scalar is deprecated, and will error in future. Ensure you extract a single element from your array before performing this operation. (Deprecated NumPy 1.25.)
 
