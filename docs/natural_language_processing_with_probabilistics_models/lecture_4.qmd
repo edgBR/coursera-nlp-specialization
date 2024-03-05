@@ -1,0 +1,87 @@
+---
+title: "Word Embeddings"
+jupyter: "nlp-python-kernel"
+format:
+#   html:
+#     toc: true
+#     toc-depth: 3
+#     toc-location: left
+#     number-sections: true
+#     number-depth: 3
+#     html-math-method: katex
+#     css: styles.css
+  gfm:
+      html-math-method: katex
+      toc: true
+      toc-depth: 3
+      number-sections: true
+      number-depth: 3
+---
+
+\newpage
+
+# Introduction
+
+
+Word embeddings are used in most NLP applications. Whenever you are dealing with text, you first have to find a way to encode the words as numbers. Word embedding are a very common technique that allows you to do so. Use cases of word embeddings have span across anywhere.
+
+The simplest way to represent words as numbers is for a given vocabulary to assign a unique integer to each word. One of the problems is that the order of the words alphabetical in this example doesn't make much sense from a semantic perspective. For example, there is no reason why happy should be assigned a greater number than hand for instance or a smaller one than zebra.
+
+A potential mitigation of this will be to use one-hot representation, however the problem with this representation is that vectors become increasingly high depending of the vocabulary size. Besides this kind of representation is not position aware, that means that the representation doesn't carry the word meaning. If you attempt to determine how similar two words are by calculating the distance between their one hot vectors, then you will always get the same distance between any two pairs of words. For example, using one hot vectors, the word happy is just as similar to the word paper as it is to the word excited. Intuitively, you would think that happy is more similar to excited than it is to paper
+
+![](images/one-hot-representation.png)
+
+
+Words on the left are considered negative in some way and words on the right are considered positive in some way. Words that are much more negative, are further to the left and the words that are much more positive are further to the right. You could store their positions as numbers in a single vector of Length 1. Notice that you can now use any decimal value instead of 0 and 1. This is quite useful, in that now you can say that happy and excited that are more similar to each other compared to the word paper, because the number representing happy is closer to the number representing excited.
+
+![](images/word-embeddings.png)
+
+## How to create word embeddings
+
+To create word embeddings, you always need two things, a corpus of text, and an embedding method.
+
+The corpus contains the words you want to embed, organized in the same way as they would be used in the context of interest. For example, if you want to generate towards embeddings based on Shakespeare, then your corpus would be the full, and original text of Shakespeare and not study notes, side presentations, or keywords from Shakespeare. The context of a word tells you what type of words tend to occur near that specific word. The context is important as this is what will give meaning to each word embedding.
+
+There are many types of possible methods that allow you to learn the word embeddings. The machine learning model performs a learning task, and the main by-products of this task are the word embeddings. The task could be to learn to predict a word based on the surrounding words in a sentence of the corpus, as in the case of the continuous bag-of-words.
+
+The task is self-supervised: it is both unsupervised in the sense that the input data — the corpus — is unlabelled, and supervised in the sense that the data itself provides the necessary context which would ordinarily make up the labels.
+
+When training word vectors, there are some parameters you need to tune. (i.e. the dimension of the word vector)
+
+![](images/word-embeddings-learning-schema.png)
+
+Embedding computation is usually classified in 2 different categories:
+
+- Classical Methods.
+- Contextual Embeddings.
+
+Classical methods are usually context unaware which means that a word will always have the same embedding (this is not true always). Among the most relevants we have:
+
+- word2vec (Google, 2013). Word2Vec algorithm showed that we can use a vector (a list of numbers) to properly represent words in a way that captures semantic or meaning-related relationships (e.g. the ability to tell if words are similar, or opposites, or that a pair of words like “Stockholm” and “Sweden” have the same relationship between them as “Cairo” and “Egypt” have between them) as well as syntactic, or grammar-based, relationships (e.g. the relationship between “had” and “has” is the same as that between “was” and “is”). The implementation of word2vec can be via:
+
+    - Continuous bag-of-words (CBOW): the model learns to predict the center word given some context words. It works by computing the conditional probability of a target word given the context words surrounding it across a window of size k.
+    - Continuous skip-gram / Skip-gram with negative sampling (SGNS): the model learns to predict the words surrounding a given input word.
+
+- Global Vectors (GloVe) (Stanford, 2014): factorizes the logarithm of the corpus's word co-occurrence matrix, similar to the count matrix you use in HMM.
+
+- fastText (Facebook, 2016): based on the skip-gram model and takes into account the structure of words by representing words as an n-gram of characters. It supports out-of-vocabulary (OOV) words.
+
+Deep Learning and contextual embeddings, in these more advanced models, words have different embeddings depending on their context. You can download pre-trained embeddings for the following models.
+
+- BERT (Google 2018) and derivatives (RoBERTA, BART, DistillBERT, CamemBERT, ALBERT, XLM-RoBERTA)
+- ELMo (Allen Institute for AI, 2018).
+- GPT2 (Open AI, 2018)
+
+# Word2Vec - CBOW
+
+To create word embeddings, you need a corpus and a learning algorithm. The by-product of this task would be a set of word embeddings. In the case of the continuous bag-of-words model, the objective of the task is to predict a missing word based on the surrounding words.
+
+![](images/cbow-1.png)
+
+Here is a visualization that shows you how the models works.
+
+![](images/cbow-2.png)
+
+As you can see, the window size in the image above is 5. The context size, C, is 2. C usually tells you how many words before or after the center word the model will use to make the prediction. Here is another visualization that shows an overview of the model.
+
+![](images/cbow-3.png)
