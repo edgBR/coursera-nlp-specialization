@@ -85,3 +85,590 @@ Here is a visualization that shows you how the models works.
 As you can see, the window size in the image above is 5. The context size, C, is 2. C usually tells you how many words before or after the center word the model will use to make the prediction. Here is another visualization that shows an overview of the model.
 
 ![](images/cbow-3.png)
+
+## Cleaning and tokenization
+
+Before implementing any natural language processing algorithm, you might want to clean the data and tokenize it. Here are a few things to keep track of when handling your data.
+
+![](images/tokenization-cbow.png)
+
+A small pipeline to tokenize text can be shown as follows:
+
+![](images/nltk-token-with-emojis.png)
+
+## Sliding windows of words
+
+Given a pre-tokenized text we can extract the center words using a sliding window as:
+
+```{python}
+
+import re
+import nltk
+
+nltk.download('punkt')
+
+import emoji
+import numpy as np
+from nltk.tokenize import word_tokenize
+
+def tokenize(corpus):
+    data = re.sub(r'[,!?;-]+', '.', corpus)
+    data = nltk.word_tokenize(data)  # tokenize string to words
+    data = [ ch.lower() for ch in data
+             if ch.isalpha()
+             or ch == '.'
+             or emoji.get_emoji_regexp().search(ch)
+           ]
+    return data
+
+from typing import List
+def get_windows(words : List, C : int) -> tuple :
+    i = C
+    while i < len(words) - C:
+        center_word = words[i]
+        #words[(i - C):i] C words before center word
+        #words[(i + 1):(i+C+1)] words after center word
+        context_words = words[(i - C):i] + words[(i+1):(i+C+1)]
+        yield context_words, center_word
+        i +=1
+
+corpus = 'Who ❤️ "word embeddings" in 2020? I do!!!'
+tokens = tokenize(corpus)
+
+sliding_windows = get_windows(tokens, 2)
+
+#tuple/iterator
+for i,j in sliding_windows:
+    print(f"{i} {j}")
+
+```
+
+## Transforming Words into Vectors
+
+Given some context words we need to feed them into a model and predict the central word. Of the sample corpus which is the sentence "I'm happy because I'm learning" you first create a vocabulary which is the set of unique words in the corpus.
+
+You can now encode each word as a column, one hot vector where each row of the vector corresponds to a word of the vocabulary. So five rows in total here. By the way, here the words corresponding to the rows are arranged in alphabetical order but any other order would be fine. In this way the vector for am will have a one in the row corresponding to am and zero everywhere else. To transform the context vectors into one single vector, you can use the following.
+
+
+![](images/context-vector-combinations.png)
+
+As you can see, we started with one-hot vectors for the context words and and we transform them into a single vector by taking an average. As a result you end up having the following vectors that you can use for your training.
+
+Where the context word vectors will be (X) and the center word vector will be target (Y).
+
+## Creating one-hot vectors:
+
+The center words will be represented as one-hot vectors, and the vectors that represent context words are also based on one-hot vectors.
+
+To create one-hot word vectors, you can start by mapping each unique word to a unique integer (or index). We have provided a helper function, get_dict, that creates a Python dictionary that maps words to integers and back.
+
+```{python}
+def get_dict(data):
+    """
+    Input:
+        K: the number of negative samples
+        data: the data you want to pull from
+        indices: a list of word indices
+    Output:
+        word_dict: a dictionary with the weighted probabilities of each word
+        word2Ind: returns dictionary mapping the word to its index
+        Ind2Word: returns dictionary mapping the index to its word
+    """
+    #
+    #     words = nltk.word_tokenize(data)
+    words = sorted(list(set(data)))
+    n = len(words)
+    idx = 0
+    # return these correctly
+    word2Ind = {}
+    Ind2word = {}
+    for k in words:
+        word2Ind[k] = idx
+        Ind2word[idx] = k
+        idx += 1
+    return word2Ind, Ind2word
+
+words = ['i', 'am', 'happy', 'because', 'i', 'am', 'learning']
+word2Ind, Ind2word = get_dict(words)
+
+print(word2Ind)
+print(Ind2word)
+
+```
+
+You can easily convert an integer,  𝑛 nto a one-hot vector.
+
+Consider the word "happy". First, retrieve its numeric index.
+
+
+```{python}
+n = word2Ind['happy']
+
+# Print index of word 'happy'
+n
+```
+
+Now we create a zero vector fitted with zeros:
+
+
+```{python}
+# Create vector with the same length as the vocabulary, filled with zeros
+V = len(word2Ind)
+center_word_vector = np.zeros(V)
+
+# Print vector
+center_word_vector
+```
+
+And we replace the 0 elements with the index of the word we are interested in:
+
+
+```{python}
+center_word_vector[n] = 1
+```
+
+Wrapping into a function:
+
+
+```{python}
+# Define the 'word_to_one_hot_vector' function that will include the steps previously seen
+def word_to_one_hot_vector(word, word2Ind, V):
+    one_hot_vector = np.zeros(V)
+    one_hot_vector[word2Ind[word]] = 1
+    return one_hot_vector
+
+word_to_one_hot_vector('happy', word2Ind, V)
+```
+
+Now for the context word we average the one hot vectors. We use list comprehension construct and the word_to_one_hot_vector function:
+
+
+```{python}
+context_words = ['i', 'am', 'because', 'i']
+context_words_vectors = [word_to_one_hot_vector(w, word2Ind, V) for w in context_words]
+
+# Print one-hot vectors for each context word
+np.mean(context_words_vectors, axis=0)
+```
+
+Wrapping in a function:
+
+
+```{python}
+def context_words_to_vector(context_words, word2Ind, V):
+    context_words_vectors = [word_to_one_hot_vector(w, word2Ind, V) for w in context_words]
+    context_words_vectors = np.mean(context_words_vectors, axis=0)
+    return context_words_vectors
+```
+
+To build the training dataset we iterate over the tokens and we use the get_windows function in convination with the previous functions:
+
+```{python}
+for context_words, center_word in get_windows(words, 2):  # reminder: 2 is the context half-size
+    print(f'Context words:  {context_words} -> {context_words_to_vector(context_words, word2Ind, V)}')
+    print(f'Center word:  {center_word} -> {word_to_one_hot_vector(center_word, word2Ind, V)}')
+    print()
+```
+
+Considering only one row by using a generator function:
+
+
+```{python}
+def get_training_example(words, C, word2Ind, V):
+    for context_words, center_word in get_windows(words, C):
+        yield context_words_to_vector(context_words, word2Ind, V), word_to_one_hot_vector(center_word, word2Ind, V)
+
+for context_words_vector, center_word_vector in get_training_example(words, 2, word2Ind, V):
+    print(f'Context words vector:  {context_words_vector}')
+    print(f'Center word vector:  {center_word_vector}')
+    print()
+```
+
+# Architecture of the CBOW Model
+
+You have an input, X, which is the average of all context vectors. You then multiply it by $W_1$ and add $b_1$. The result goes through a ReLU function to give you your hidden layer. That layer is then multiplied by
+$W_2$ and add $b_2$. The result goes through a softmax which gives you a distribution over V, vocabulary words. You pick the vocabulary word that corresponds to the arg-max of the output.
+
+![](images/cbow-4.png)
+
+## Dimensions
+
+The Dimensions (for a single input) we have the following:
+
+- x is in the input layer, a column vector with $Vx1$ size being V the size of the vocabulary.
+- The values stored in the hidden layer are $z_1 = w_1x + b1$. An then over $z_1$ we apply a ReLU activation function to generate $h$.
+- The size of $W_1$ will $NxV$ (N is the size of the word embeddings) and $b_1$ is $Nx1$ size.
+- Multiplying NxV by Vx1 matrix plus a Nx1 bias matrix give us a Nx1 hidden layer called h.
+- From the hidden layer we move to calculate z_2 = w_2h + b2.
+- $W_2$ has $VxN$ dimensions and $b_2$ has $Vx1$ dimensions.
+- $z_2$ has $Vx1$ dimendions.
+- The final output layer we have $Vx1$ vector.
+
+![](images/cbow-dimensions.png)
+
+We have mainly been speaking about the CBOW model by using one example as an input. However, what happens if we decide to feed in several inputs and get several outputs at the same time? How do we vectorized?
+
+Say that you want to feed an input context toward vectors into the neural network during each iteration. M is called the batch size and it's a hyper parameter of the model that you define at training time. You can join these m column vectors side by side to form a matrix with zero's and m columns, which I'll notice capital X. You can then pass this matrix through the network and you will get capital H. The matrix representing the values of the hidden layer equals ReLU the weight matrix capital Z1, where Z1 is W1 times X+B1. It's an N rows by m columns matrix. Know that you need to replace the original b1 bias vector with a bias matrix capital B1 where you duplicate the column vector M times to have an N by m matrix. So that the bias germs are added to each of the weighted sums just as a tip. When you're working on the assignment, this is known as broadcasting the vector to a matrix and it's performed automatically by numpy when adding a matrix to a column vector with the same number of rows. Next, capital Y hat, the matrix containing the m outputs. It is equal to the softmax of W2H+B2. And again you're replicating the bias vector lower case b2 M times to get the bias matrix capital B2. Y hat has zeros and m columns. You can break Y hat down into m column vectors, each one corresponding to one of the input context words vectors from the input matrix. So the vector from the first column of the input matrix is transformed into the vector corresponding to the first column of the output matrix, and similarly for the other m-1 vectors.
+
+![](images/cbow-dimensions-2.png)
+
+## Activation Functions
+
+The Rectified Linear Unit (ReLU) is one of the most popular activation functions it deep learning. Apart from the input neuron which are used as is each layer first calculates the weighted sum of its inputs and add a bias and then passess this to an activation function. ReLU is a popular general purpose activation function that only activates the neuron every some of its weighted input is positive and passes through this result. If that's the case mathematically ReLU of X where X is a real number is equal to the maximum of (0, X).
+
+![](images/relu.png)
+
+An example as follows:
+
+```{python}
+# Define a random seed so all random outcomes can be reproduced
+np.random.seed(10)
+
+# Define a 5X1 column vector using numpy
+z_1 = 10*np.random.rand(5, 1)-5
+h = z_1.copy()
+
+h < 0
+
+```
+
+To take the max and set the rest to 0:
+
+```{python}
+h[h < 0] = 0
+```
+
+Generically:
+
+```{python}
+def relu(z):
+    result = z.copy()
+    result[result < 0] = 0
+    return result
+```
+
+The softmax function works as follows. The input is a vector of real numbers and the output is a vector which elements sum up to up and which elements are between 0 and 1. As an example lets imagine the following vector:
+
+![](images/softmax.png)
+
+```{python}
+import numpy as np
+
+z = np.array([9, 8, 11, 10, 8.5])
+exp_z = np.exp(z)
+print(exp_z)
+sum_z = np.sum(exp_z)
+print(sum_z)
+y_hat = exp_z / sum_z
+print(y_hat)
+print(round(np.sum(y_hat)) == 1)
+```
+
+Generically:
+
+```{python}
+
+def softmax(z):
+    e_z = np.exp(z)
+    sum_e_z = np.sum(e_z)
+    return e_z / sum_e_z
+
+```
+
+## Softmax cost function
+
+The cost function for the CBOW model is a cross-entropy loss defined as:
+
+```{python}
+import numpy as np
+def cross_entropy_loss(y_hat, y):
+    return -np.sum(y * np.log(y_hat))
+
+```
+
+Mathematically:
+
+$J = - \sum_{k=1}^V y_{k} log\hat{y}_{k}$
+
+![](images/cross-entropy-visualization.png)
+
+## Training a CBOW Model: Forward Propagation
+
+ A quick refresher on forward propagation. It involves seeking input values, passing them forward through the neural network from input to output through each successive layer, and calculating the values of the layers as you do so. Starting with a batch of examples represented as X aV by m matrix, where V is the vocabulary size and m is the batch size. You will first propagate X forward into the neural network and get the output matrix Y hat, which is aV by m matrix. Remember that the output matrix simply stacks the m output column vectors corresponding to the m input vectors representing each of training examples.
+
+ Now, let's revisit the formulas for forward propagation. To calculate the loss for a single example, you use the cross-entropy loss function. When you're working with batches of examples, you will calculate the cost, which has the same purpose as the loss and is actually based on the loss function. In practice, the terms loss and cost are often used interchangeably, but in this course, we will refer to loss for a single example and cost to refer to a batch of examples. The cross-entropy cost for a batch of examples is simply the mean of the cross-entropy losses of each of the m individual examples.
+
+
+
+$J_{batch} = - \frac{1}{m} \sum_{i=1}^m \sum_{j=1}^V y_{j}^i log\hat{y}_{j}^i$
+
+
+To minimize the cost we will need to use backpropagation. Backbpropagation is an algorithm that calculate the partial derivates or cost gradiant with respect to the weights and biases of the neural network.
+
+Besides we need to use the gradient descent algorithm to update the weights and biases after every iteration.
+
+Lets see one example. Assuming an embedding dimension of N=3 and a vocabulary size V of 5 we will initialize the W1 and W2 and b1,b2 matrixes:
+
+```{python}
+# Define the size of the word embedding vectors and save it in the variable 'N'
+N = 3
+
+# Define V. Remember this was the size of the vocabulary in the previous lecture notebooks
+V = 5
+
+# Define first matrix of weights
+W1 = np.array([[ 0.41687358,  0.08854191, -0.23495225,  0.28320538,  0.41800106],
+               [ 0.32735501,  0.22795148, -0.23951958,  0.4117634 , -0.23924344],
+               [ 0.26637602, -0.23846886, -0.37770863, -0.11399446,  0.34008124]])
+
+# Define second matrix of weights
+W2 = np.array([[-0.22182064, -0.43008631,  0.13310965],
+               [ 0.08476603,  0.08123194,  0.1772054 ],
+               [ 0.1871551 , -0.06107263, -0.1790735 ],
+               [ 0.07055222, -0.02015138,  0.36107434],
+               [ 0.33480474, -0.39423389, -0.43959196]])
+
+# Define first vector of biases
+b1 = np.array([[ 0.09688219],
+               [ 0.29239497],
+               [-0.27364426]])
+
+# Define second vector of biases
+b2 = np.array([[ 0.0352008 ],
+               [-0.36393384],
+               [-0.12775555],
+               [-0.34802326],
+               [-0.07017815]])
+
+```
+
+
+```{python}
+print(f'V (vocabulary size): {V}')
+print(f'N (embedding size / size of the hidden layer): {N}')
+print(f'size of W1: {W1.shape} (NxV)')
+print(f'size of b1: {b1.shape} (Nx1)')
+print(f'size of W2: {W2.shape} (VxN)')
+print(f'size of b2: {b2.shape} (Vx1)')
+```
+
+Lets re-use our previous functions:
+
+
+```{python}
+
+def get_dict(data):
+    """
+    Input:
+        K: the number of negative samples
+        data: the data you want to pull from
+        indices: a list of word indices
+    Output:
+        word_dict: a dictionary with the weighted probabilities of each word
+        word2Ind: returns dictionary mapping the word to its index
+        Ind2Word: returns dictionary mapping the index to its word
+    """
+    #
+    #     words = nltk.word_tokenize(data)
+    words = sorted(list(set(data)))
+    n = len(words)
+    idx = 0
+    # return these correctly
+    word2Ind = {}
+    Ind2word = {}
+    for k in words:
+        word2Ind[k] = idx
+        Ind2word[idx] = k
+        idx += 1
+    return word2Ind, Ind2word
+# Define the tokenized version of the corpus
+words = ['i', 'am', 'happy', 'because', 'i', 'am', 'learning']
+
+# Get 'word2Ind' and 'Ind2word' dictionaries for the tokenized corpus
+word2Ind, Ind2word = get_dict(words)
+
+# Define the 'get_windows' function as seen in a previous notebook
+def get_windows(words, C):
+    i = C
+    while i < len(words) - C:
+        center_word = words[i]
+        context_words = words[(i - C):i] + words[(i+1):(i+C+1)]
+        yield context_words, center_word
+        i += 1
+
+# Define the 'word_to_one_hot_vector' function as seen in a previous notebook
+def word_to_one_hot_vector(word, word2Ind, V):
+    one_hot_vector = np.zeros(V)
+    one_hot_vector[word2Ind[word]] = 1
+    return one_hot_vector
+
+# Define the 'context_words_to_vector' function as seen in a previous notebook
+def context_words_to_vector(context_words, word2Ind, V):
+    context_words_vectors = [word_to_one_hot_vector(w, word2Ind, V) for w in context_words]
+    context_words_vectors = np.mean(context_words_vectors, axis=0)
+    return context_words_vectors
+
+# Define the generator function 'get_training_example' as seen in a previous notebook
+def get_training_example(words, C, word2Ind, V):
+    for context_words, center_word in get_windows(words, C):
+        yield context_words_to_vector(context_words, word2Ind, V), word_to_one_hot_vector(center_word, word2Ind, V)
+```
+
+And now we save the generator object:
+
+
+```{python}
+# Save generator object in the 'training_examples' variable with the desired arguments
+training_examples = get_training_example(words, 2, word2Ind, V)
+```
+
+We can use next to get the next available value from an iterator:
+
+
+```{python}
+# Get first values from generator
+x_array, y_array = next(training_examples)
+```
+
+In this notebook next is used because you will only be performing one iteration of training.
+
+Now we convert all these vectors in 2D arrays to perform matrix multiplication:
+
+
+```{python}
+# Copy vector
+x = x_array.copy()
+
+# Reshape it
+x.shape = (V, 1)
+
+# Print it
+print(f'x:\n{x}\n')
+
+# Copy vector
+y = y_array.copy()
+
+# Reshape it
+y.shape = (V, 1)
+
+# Print it
+print(f'y:\n{y}')
+```
+
+Let's calculate the values of the hidden layer
+
+$$
+\begin{align}
+ \mathbf{z_1} = \mathbf{W_1}\mathbf{x} + \mathbf{b_1}  \tag{1} \\
+ \mathbf{h} = \mathrm{ReLU}(\mathbf{z_1})  \tag{2} \\
+\end{align}
+$$
+
+```{python}
+z1 = np.dot(W1, x) + b1
+z1
+```
+
+Now we calculate h:
+
+
+```{python}
+h = relu(z1)
+h
+```
+
+And now we calculate $z_2$ and $\hat{y}$:
+
+```{python}
+# Compute z2 (values of the output layer before applying the softmax function)
+z2 = np.dot(W2, h) + b2
+
+# Print z2
+z2
+```
+
+```{python}
+y_hat = softmax(z2)
+y_hat
+```
+
+To find which word the neural network predicted we can:
+
+
+```{python}
+print(Ind2word[np.argmax(y_hat)])
+```
+
+So now that the forward pass is completed we need to backpropagate the loss. For that we calculate:
+
+
+```{python}
+cross_entropy_loss(y_hat, y)
+```
+
+Now to backpropagate:
+
+$$
+\begin{align}
+    \frac{\partial J}{\partial \mathbf{W_1}} &= \rm{ReLU}\left ( \mathbf{W_2^\top} (\mathbf{\hat{y}} - \mathbf{y})\right )\mathbf{x}^\top \tag{7}\\
+    \frac{\partial J}{\partial \mathbf{W_2}} &= (\mathbf{\hat{y}} - \mathbf{y})\mathbf{h^\top} \tag{8}\\
+    \frac{\partial J}{\partial \mathbf{b_1}} &= \rm{ReLU}\left ( \mathbf{W_2^\top} (\mathbf{\hat{y}} - \mathbf{y})\right ) \tag{9}\\
+    \frac{\partial J}{\partial \mathbf{b_2}} &= \mathbf{\hat{y}} - \mathbf{y} \tag{10}\\
+\end{align}
+$$
+
+Note: these formulas are slightly simplified compared to the ones in the lecture as you're working on a single training example, whereas the lecture provided the formulas for a batch of examples. In the assignment you'll be implementing the latter.
+
+Let's start with an easy one.
+
+**Calculate the partial derivative of the loss function with respect to $\mathbf{b_2}$, and store the result in `grad_b2`.**
+
+$$
+\frac{\partial J}{\partial \mathbf{b_2}} = \mathbf{\hat{y}} - \mathbf{y} \tag{10}
+$$
+
+```{python}
+grad_W1 = np.dot(relu(np.dot(W2.T, y_hat - y)), x.T)
+grad_W2 = np.dot(y_hat - y, h.T)
+grad_b1 = relu(np.dot(W2.T, y_hat - y))
+grad_b2 = y_hat - y
+# Print vector
+# Print matrix
+print(f"Grad W1: {grad_W1}")
+print(f"Grad W2: {grad_W2}")
+print(f"Grad b1: {grad_b2}")
+print(f"Grad b2: {grad_b2}")
+```
+
+For gradient descent we select a learning rate. And we update the gradients accordingly:
+
+$$
+\begin{align}
+ \mathbf{W_1} &:= \mathbf{W_1} - \alpha \frac{\partial J}{\partial \mathbf{W_1}} \tag{11}\\
+ \mathbf{W_2} &:= \mathbf{W_2} - \alpha \frac{\partial J}{\partial \mathbf{W_2}} \tag{12}\\
+ \mathbf{b_1} &:= \mathbf{b_1} - \alpha \frac{\partial J}{\partial \mathbf{b_1}} \tag{13}\\
+ \mathbf{b_2} &:= \mathbf{b_2} - \alpha \frac{\partial J}{\partial \mathbf{b_2}} \tag{14}\\
+\end{align}
+$$
+
+
+```{python}
+# Compute updated W2
+W2_new = W2 - alpha * grad_W2
+
+# Compute updated b1
+b1_new = b1 - alpha * grad_b1
+
+# Compute updated b2
+b2_new = b2 - alpha * grad_b2
+
+
+print('W2_new')
+print(W2_new)
+print()
+print('b1_new')
+print(b1_new)
+print()
+print('b2_new')
+print(b2_new)
+```
