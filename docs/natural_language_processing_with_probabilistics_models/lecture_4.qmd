@@ -653,6 +653,7 @@ $$
 
 
 ```{python}
+alpha = 0.03
 # Compute updated W2
 W2_new = W2 - alpha * grad_W2
 

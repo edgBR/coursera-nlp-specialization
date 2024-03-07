@@ -24,6 +24,14 @@
     function](#softmax-cost-function)
   - [<span class="toc-section-number">3.4</span> Training a CBOW Model:
     Forward Propagation](#training-a-cbow-model-forward-propagation)
+  - [<span class="toc-section-number">3.5</span> Extracting word
+    embeddings](#extracting-word-embeddings)
+  - [<span class="toc-section-number">3.6</span> Evaluating Word
+    Embeddings: Intrinsic
+    Evaluation](#evaluating-word-embeddings-intrinsic-evaluation)
+  - [<span class="toc-section-number">3.7</span> Evaluation Word
+    Embeddings: Extrinsic
+    Evaluation](#evaluation-word-embeddings-extrinsic-evaluation)
 
 # Introduction
 
@@ -525,7 +533,7 @@ import numpy as np
 z = np.array([9, 8, 11, 10, 8.5])
 exp_z = np.exp(z)
 print(exp_z)
-sum_z = np.sum(exp_z)
+sum_z = np.sum(exp_z, axis=0)
 print(sum_z)
 y_hat = exp_z / sum_z
 print(y_hat)
@@ -543,7 +551,7 @@ Generically:
 ``` python
 def softmax(z):
     e_z = np.exp(z)
-    sum_e_z = np.sum(e_z)
+    sum_e_z = np.sum(e_z, axis=0)
     return e_z / sum_e_z
 ```
 
@@ -902,3 +910,187 @@ $$
  \mathbf{b_2} &:= \mathbf{b_2} - \alpha \frac{\partial J}{\partial \mathbf{b_2}} \tag{14}\\
 \end{align}
 $$
+
+``` python
+alpha = 0.03
+# Compute updated W2
+W2_new = W2 - alpha * grad_W2
+
+# Compute updated b1
+b1_new = b1 - alpha * grad_b1
+
+# Compute updated b2
+b2_new = b2 - alpha * grad_b2
+
+
+print('W2_new')
+print(W2_new)
+print()
+print('b1_new')
+print(b1_new)
+print()
+print('b2_new')
+print(b2_new)
+```
+
+    W2_new
+    [[-0.22384758 -0.43362588  0.13310965]
+     [ 0.08265956  0.0775535   0.1772054 ]
+     [ 0.19557112 -0.04637608 -0.1790735 ]
+     [ 0.06855622 -0.02363691  0.36107434]
+     [ 0.33251813 -0.3982269  -0.43959196]]
+
+    b1_new
+    [[ 0.09688219]
+     [ 0.29239497]
+     [-0.27875802]]
+
+    b2_new
+    [[ 0.02964508]
+     [-0.36970753]
+     [-0.10468778]
+     [-0.35349417]
+     [-0.0764456 ]]
+
+## Extracting word embeddings
+
+There are two options to extract word embeddings after training the
+continuous bag of words model. You can use $w_1$ as follows:
+
+![](images/extract-word-embeddings-1.png)
+
+If you were to use $w_1$, each column will correspond to the embeddings
+of a specific word. You can also use $w_2$ as follows:
+
+![](images/extract-word-embeddings-2.png)
+
+The final option is to take an average of both matrices as follows:
+
+![](images/extract-word-embeddings-3.png)
+
+A practical python example can be found as follows:
+
+``` python
+import numpy as np
+# Define the tokenized version of the corpus
+words = ['i', 'am', 'happy', 'because', 'i', 'am', 'learning']
+
+# Define V. Remember this is the size of the vocabulary
+V = 5
+
+# Get 'word2Ind' and 'Ind2word' dictionaries for the tokenized corpus
+word2Ind, Ind2word = get_dict(words)
+
+
+# Define first matrix of weights
+W1 = np.array([[ 0.41687358,  0.08854191, -0.23495225,  0.28320538,  0.41800106],
+               [ 0.32735501,  0.22795148, -0.23951958,  0.4117634 , -0.23924344],
+               [ 0.26637602, -0.23846886, -0.37770863, -0.11399446,  0.34008124]])
+
+# Define second matrix of weights
+W2 = np.array([[-0.22182064, -0.43008631,  0.13310965],
+               [ 0.08476603,  0.08123194,  0.1772054 ],
+               [ 0.1871551 , -0.06107263, -0.1790735 ],
+               [ 0.07055222, -0.02015138,  0.36107434],
+               [ 0.33480474, -0.39423389, -0.43959196]])
+
+# Define first vector of biases
+b1 = np.array([[ 0.09688219],
+               [ 0.29239497],
+               [-0.27364426]])
+
+# Define second vector of biases
+b2 = np.array([[ 0.0352008 ],
+               [-0.36393384],
+               [-0.12775555],
+               [-0.34802326],
+               [-0.07017815]])
+```
+
+Using approach 1:
+
+``` python
+# Loop through each word of the vocabulary
+for word in word2Ind:
+    # Extract the column corresponding to the index of the word in the vocabulary
+    word_embedding_vector = W1[:, word2Ind[word]]
+    # Print word alongside word embedding vector
+    print(f'{word}: {word_embedding_vector}')
+```
+
+    am: [0.41687358 0.32735501 0.26637602]
+    because: [ 0.08854191  0.22795148 -0.23846886]
+    happy: [-0.23495225 -0.23951958 -0.37770863]
+    i: [ 0.28320538  0.4117634  -0.11399446]
+    learning: [ 0.41800106 -0.23924344  0.34008124]
+
+Using approach 2:
+
+``` python
+# Loop through each word of the vocabulary
+for word in word2Ind:
+    # Extract the column corresponding to the index of the word in the vocabulary
+    word_embedding_vector = W2.T[:, word2Ind[word]]
+    # Print word alongside word embedding vector
+    print(f'{word}: {word_embedding_vector}')
+```
+
+    am: [-0.22182064 -0.43008631  0.13310965]
+    because: [0.08476603 0.08123194 0.1772054 ]
+    happy: [ 0.1871551  -0.06107263 -0.1790735 ]
+    i: [ 0.07055222 -0.02015138  0.36107434]
+    learning: [ 0.33480474 -0.39423389 -0.43959196]
+
+Using option 3:
+
+``` python
+W3 = (W1+W2.T)/2
+# Loop through each word of the vocabulary
+for word in word2Ind:
+    # Extract the column corresponding to the index of the word in the vocabulary
+    word_embedding_vector = W3[:, word2Ind[word]]
+    # Print word alongside word embedding vector
+    print(f'{word}: {word_embedding_vector}')
+```
+
+    am: [ 0.09752647 -0.05136565  0.19974284]
+    because: [ 0.08665397  0.15459171 -0.03063173]
+    happy: [-0.02389858 -0.15029611 -0.27839106]
+    i: [0.1768788  0.19580601 0.12353994]
+    learning: [ 0.3764029  -0.31673866 -0.04975536]
+
+## Evaluating Word Embeddings: Intrinsic Evaluation
+
+Intrinsic evaluation allows you to test relationships between words. It
+allows you to capture semantic analogies as, “France” is to “Paris” as
+“Italy” is to \<?\> and also syntactic analogies as “seen” is to “saw”
+as “been” is to \<?\>.
+
+Ambiguous cases could be much harder to track:
+
+“wolf” is to “pack” as “bee” is to ? –\> swarm? colony?
+
+There are a few ways to allow us to perform this intrinsic evaluation.
+These are:
+
+- Analogies (as described above)
+- Clustering, to group similar word embeddings and check if the words in
+  the same cluster have some similarities.
+- Visualization techniques, using a dimensionality reduction method you
+  can also use some human judgement to see if the words that are similar
+  are within the same region in the low dimension representation plot.
+
+## Evaluation Word Embeddings: Extrinsic Evaluation
+
+To test your word embedding evaluation on external tasks, you’ll
+probably resort to extrinsic evaluation. For example, if you build a
+system that does speech recognition, then the only way to know if it
+works is to actually test the system as a whole on its task.
+
+To evaluate word embeddings with extrinsic evaluation, you use the word
+embeddings to perform on external task, which is typically the
+real-world task that you initially needed the word embeddings for. Then
+use the performance metric of this task as a proxy for the quality of
+the word embeddings. Examples of useful word level tasks include named
+entity recognition or parts-of-speech tagging. A named entity is
+something that can be referred to by a proper name.NP
