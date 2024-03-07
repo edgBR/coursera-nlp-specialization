@@ -24,6 +24,7 @@ exclude = [
     "venv",
     "docs/natural_language_processing_with_probabilistics_models/w2_unittest.py",
     "docs/natural_language_processing_with_probabilistics_models/w3_unittest.py",
+    "docs/natural_language_processing_with_probabilistics_models/utils2.py",
     "docs/natural_language_processing_with_probabilistics_models/data/"]
 
 extend-include = ["*.ipynb"]

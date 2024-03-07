@@ -357,7 +357,7 @@ import numpy as np
 z = np.array([9, 8, 11, 10, 8.5])
 exp_z = np.exp(z)
 print(exp_z)
-sum_z = np.sum(exp_z)
+sum_z = np.sum(exp_z, axis=0)
 print(sum_z)
 y_hat = exp_z / sum_z
 print(y_hat)
@@ -370,7 +370,7 @@ Generically:
 
 def softmax(z):
     e_z = np.exp(z)
-    sum_e_z = np.sum(e_z)
+    sum_e_z = np.sum(e_z, axis=0)
     return e_z / sum_e_z
 
 ```
@@ -672,3 +672,116 @@ print()
 print('b2_new')
 print(b2_new)
 ```
+
+## Extracting word embeddings
+
+There are two options to extract word embeddings after training the continuous bag of words model. You can use $w_1$ as follows:
+
+![](images/extract-word-embeddings-1.png)
+
+If you were to use $w_1$, each column will correspond to the embeddings of a specific word. You can also use $w_2$ as follows:
+
+![](images/extract-word-embeddings-2.png)
+
+The final option is to take an average of both matrices as follows:
+
+![](images/extract-word-embeddings-3.png)
+
+A practical python example can be found as follows:
+
+
+
+```{python}
+import numpy as np
+# Define the tokenized version of the corpus
+words = ['i', 'am', 'happy', 'because', 'i', 'am', 'learning']
+
+# Define V. Remember this is the size of the vocabulary
+V = 5
+
+# Get 'word2Ind' and 'Ind2word' dictionaries for the tokenized corpus
+word2Ind, Ind2word = get_dict(words)
+
+
+# Define first matrix of weights
+W1 = np.array([[ 0.41687358,  0.08854191, -0.23495225,  0.28320538,  0.41800106],
+               [ 0.32735501,  0.22795148, -0.23951958,  0.4117634 , -0.23924344],
+               [ 0.26637602, -0.23846886, -0.37770863, -0.11399446,  0.34008124]])
+
+# Define second matrix of weights
+W2 = np.array([[-0.22182064, -0.43008631,  0.13310965],
+               [ 0.08476603,  0.08123194,  0.1772054 ],
+               [ 0.1871551 , -0.06107263, -0.1790735 ],
+               [ 0.07055222, -0.02015138,  0.36107434],
+               [ 0.33480474, -0.39423389, -0.43959196]])
+
+# Define first vector of biases
+b1 = np.array([[ 0.09688219],
+               [ 0.29239497],
+               [-0.27364426]])
+
+# Define second vector of biases
+b2 = np.array([[ 0.0352008 ],
+               [-0.36393384],
+               [-0.12775555],
+               [-0.34802326],
+               [-0.07017815]])
+```
+
+Using approach 1:
+
+
+```{python}
+# Loop through each word of the vocabulary
+for word in word2Ind:
+    # Extract the column corresponding to the index of the word in the vocabulary
+    word_embedding_vector = W1[:, word2Ind[word]]
+    # Print word alongside word embedding vector
+    print(f'{word}: {word_embedding_vector}')
+```
+
+Using approach 2:
+
+
+```{python}
+# Loop through each word of the vocabulary
+for word in word2Ind:
+    # Extract the column corresponding to the index of the word in the vocabulary
+    word_embedding_vector = W2.T[:, word2Ind[word]]
+    # Print word alongside word embedding vector
+    print(f'{word}: {word_embedding_vector}')
+```
+
+Using option 3:
+
+
+```{python}
+W3 = (W1+W2.T)/2
+# Loop through each word of the vocabulary
+for word in word2Ind:
+    # Extract the column corresponding to the index of the word in the vocabulary
+    word_embedding_vector = W3[:, word2Ind[word]]
+    # Print word alongside word embedding vector
+    print(f'{word}: {word_embedding_vector}')
+```
+
+
+## Evaluating Word Embeddings: Intrinsic Evaluation
+
+Intrinsic evaluation allows you to test relationships between words. It allows you to capture semantic analogies as, “France” is to “Paris” as “Italy” is to <?> and also syntactic analogies as “seen” is to “saw” as “been” is to <?>.
+
+Ambiguous cases could be much harder to track:
+
+"wolf" is to "pack" as "bee" is to ? --> swarm? colony?
+
+There are a few ways to allow us to perform this intrinsic evaluation. These are:
+
+- Analogies (as described above)
+- Clustering, to group similar word embeddings and check if the words in the same cluster have some similarities.
+- Visualization techniques, using a dimensionality reduction method you can also use some human judgement to see if the words that are similar are within the same region in the low dimension representation plot.
+
+## Evaluation Word Embeddings: Extrinsic Evaluation
+
+To test your word embedding evaluation on external tasks, you'll probably resort to extrinsic evaluation. For example, if you build a system that does speech recognition, then the only way to know if it works is to actually test the system as a whole on its task.
+
+To evaluate word embeddings with extrinsic evaluation, you use the word embeddings to perform on external task, which is typically the real-world task that you initially needed the word embeddings for. Then use the performance metric of this task as a proxy for the quality of the word embeddings. Examples of useful word level tasks include named entity recognition or parts-of-speech tagging. A named entity is something that can be referred to by a proper name.NP
