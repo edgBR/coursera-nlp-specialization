@@ -1,0 +1,577 @@
+---
+title: "Neural Networks for Sentiminent Analysis"
+jupyter: "nlp-python-kernel"
+format:
+#   html:
+#     toc: true
+#     toc-depth: 3
+#     toc-location: left
+#     number-sections: true
+#     number-depth: 3
+#     html-math-method: katex
+#     css: styles.css
+  gfm:
+      html-math-method: katex
+      toc: true
+      toc-depth: 3
+      number-sections: true
+      number-depth: 3
+---
+
+\newpage
+
+# Introduction
+
+Previously in the course you did sentiment analysis with logistic regression and naive Bayes. Those models were in a sense more naive, and are not able to catch the sentiment off a tweet like: "I am not happy " or "If only it was a good day". When using a neural network to predict the sentiment of a sentence, you can use the following. Note that the image below has three outputs, in this case you might want to predict, "positive", "neutral ", or "negative".
+
+![](images/forward-propagation.png)
+
+Note that the network above has three layers. To go from one layer to another you can use a W matrix to propagate to the next layer. Hence, we call this concept of going from the input until the final layer, forward propagation. To represent a tweet, you can use the following:
+
+![](images/text-integer-representation.png)
+
+Note, that we add zeros for padding to match the size of the longest tweet.
+
+A neural network in the setup you can see above can only process one such tweet at a time. In order to make training more efficient (faster) you want to process many tweets in parallel. You achieve this by putting many tweets together into a matrix and then passing this matrix (rather than individual tweets) through the neural network. Then the neural network can perform its computations on all tweets at the same time.
+
+# Dense Layers and ReLU layers
+
+The Dense layer is the computation of the inner product between a set of trainable weights (weight matrix) and an input vector.  The visualization of the dense layer can be seen in the image below.
+
+![](images/dense-layers.png)
+
+The orange box in the image above shows the dense layer. An activation layer is the set of blue nodes shown with the orange box in the image below. Concretely one of the most commonly used activation layers is the rectified linear unit (ReLU).
+
+![](images/relu-2.png)
+
+## Embedding and Mean layers
+
+
+In NLP, you usually have a set of unique words called the vocabulary. An embedding layer takes an index assigned to each word from your vocabulary, and maps it to a representation of that word with a determined dimension. In this example, embedding of size equal to 2.
+
+![](images/vocabulary-index.png)
+
+For instance, the embedding layer in this example will return a vector equal to 0.020, and 0.006 for the word I. And negative 0.009 and 0.050 for the word NLP.
+
+![](images/mean-layer.png)
+
+Lets see a python example using tensorflow.
+
+```{python}
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+import numpy as np
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+
+from utils import load_tweets, process_tweet
+
+%matplotlib inline
+
+# Load positive and negative tweets
+all_positive_tweets, all_negative_tweets = load_tweets()
+
+# View the total number of positive and negative tweets.
+print(f"The number of positive tweets: {len(all_positive_tweets)}")
+print(f"The number of negative tweets: {len(all_negative_tweets)}")
+```
+
+Here you will process the tweets. The processing includes:
+
+- tokenizing the sentence (splitting to words)
+- removing stock market tickers like $GE
+- removing old style retweet text "RT"
+- removing hyperlinks
+- removing hashtags
+- lowercasing
+- removing stopwords and punctuation
+- stemming
+
+Some of these things are general steps you would do when processing any text, some others are very "tweet-specific". The details of the process_tweet function are available in utils.py file.
+
+```{python}
+# Process all the tweets: tokenize the string, remove tickers, handles, punctuation and stopwords, stem the words
+all_positive_tweets_processed = [process_tweet(tweet) for tweet in all_positive_tweets]
+all_negative_tweets_processed = [process_tweet(tweet) for tweet in all_negative_tweets]
+```
+
+Now, we split the tweets into the training and validation datasets. For this example you can use 80 % of the data for training and 20 % of the data for validation.
+
+```{python}
+# Split positive set into validation and training
+val_pos = all_positive_tweets_processed[4000:]
+train_pos = all_positive_tweets_processed[:4000]
+# Split negative set into validation and training
+val_neg = all_negative_tweets_processed[4000:]
+train_neg = all_negative_tweets_processed[:4000]
+
+train_x = train_pos + train_neg
+val_x  = val_pos + val_neg
+
+# Set the labels for the training and validation set (1 for positive, 0 for negative)
+train_y = [[1] for _ in train_pos] + [[0] for _ in train_neg]
+val_y  = [[1] for _ in val_pos] + [[0] for _ in val_neg]
+
+print(f"There are {len(train_x)} sentences for training.")
+print(f"There are {len(train_y)} labels for training.\n")
+print(f"There are {len(val_x)} sentences for validation.")
+print(f"There are {len(val_y)} labels for validation.")
+```
+
+After this basic processing and splitting we will start encoding the words as vectors. For that we will map every tweet to an integer index.
+
+The vocabulary will also include some special tokens
+
+- '': padding
+- '[UNK]': a token representing any word that is not in the vocabulary.
+
+```{python}
+def build_vocabulary(corpus):
+    '''Function that builds a vocabulary from the given corpus
+    Input:
+        - corpus (list): the corpus
+    Output:
+        - vocab (dict): Dictionary of all the words in the corpus.
+                The keys are the words and the values are integers.
+    '''
+
+    # The vocabulary includes special tokens like padding token and token for unknown words
+    # Keys are words and values are distinct integers (increasing by one from 0)
+    vocab = {'': 0, '[UNK]': 1}
+
+    ### START CODE HERE ###
+
+    # For each tweet in the training set
+    for tweet in corpus:
+        # For each word in the tweet
+        for word in tweet:
+            # If the word is not in vocabulary yet, add it to vocabulary
+            if word not in vocab:
+                vocab[word] = len(vocab)
+
+    ### END CODE HERE ###
+
+    return vocab
+
+
+vocab = build_vocabulary(train_x)
+num_words = len(vocab)
+
+print(f"Vocabulary contains {num_words} words\n")
+print(vocab)
+```
+
+Now we will conver this tweets to a tensor:
+
+- We already transformed each tweet to a list of tokens with the process_tweet function in order to make a vocabulary.
+- Now we will transform the tokens to integers and pad the tensors so they all have equal length.
+- Note, the returned data type will be a regular Python list()
+- We won't use TensorFlow in this function
+- We also won't use a numpy array
+- For words in the tweet that are not in the vocabulary, set them to the unique ID for the token [UNK].
+- Finally we will zero padd according to the len of the longest tweet.
+
+```{python}
+def max_length(training_x, validation_x):
+    """Computes the length of the longest tweet in the training and validation sets.
+
+    Args:
+        training_x (list): The tweets in the training set.
+        validation_x (list): The tweets in the validation set.
+
+    Returns:
+        int: Length of the longest tweet.
+    """
+    ### START CODE HERE ###
+
+    max_len = max([len(x) for x in training_x + validation_x])
+
+    ### END CODE HERE ###
+    return max_len
+
+max_len = max_length(train_x, val_x)
+print(f'The length of the longest tweet is {max_len} tokens.')
+```
+
+```{python}
+def padded_sequence(tweet, vocab_dict, max_len, unk_token='[UNK]'):
+    """transform sequences of words into padded sequences of numbers
+
+    Args:
+        tweet (list): A single tweet encoded as a list of strings.
+        vocab_dict (dict): Vocabulary.
+        max_len (int): Length of the longest tweet.
+        unk_token (str, optional): Unknown token. Defaults to '[UNK]'.
+
+    Returns:
+        list: Padded tweet encoded as a list of int.
+    """
+    ### START CODE HERE ###
+    padded_tensor = []
+    # Find the ID of the UNK token, to use it when you encounter a new word
+    unk_ID = vocab_dict[unk_token]
+
+    # First convert the words to integers by looking up the vocab_dict
+    for word in tweet:
+        word_id = vocab_dict[word] if word in vocab_dict else unk_ID
+        padded_tensor.append(word_id)
+
+    zero_padding = [0] * (max_len - len(padded_tensor))
+    # Then pad the tensor with zeroes up to the length max_len
+    padded_tensor.extend(zero_padding)
+
+    ### END CODE HERE ###
+
+    return padded_tensor
+```
+
+In this part, we write your own functions and layers for the neural network to test your understanding of the implementation. It will be similar to the one used in Keras and PyTorch. Writing your own small framework will help you understand how they all work and use them effectively in the future.
+
+You will implement the ReLU and sigmoid functions, which you will use as activation functions for the neural network, as well as a fully connected (dense) layer.
+
+![](images/relu.png)
+
+$$ \mathrm{ReLU}(x) = \mathrm{max}(0,x) $$
+
+```{python}
+def relu(x):
+    '''Relu activation function implementation
+    Input:
+        - x (numpy array)
+    Output:
+        - activation (numpy array): input with negative values set to zero
+    '''
+    ### START CODE HERE ###
+
+    activation = np.maximum(x, x>0)
+
+    ### END CODE HERE ###
+
+    return activation
+```
+
+![](images/relu.png)
+
+```{python}
+def sigmoid(x):
+    '''Sigmoid activation function implementation
+    Input:
+        - x (numpy array)
+    Output:
+        - activation (numpy array)
+    '''
+    ### START CODE HERE ###
+
+    activation = 1 / (1 + np.exp(-x))
+
+    ### END CODE HERE ###
+
+    return activation
+
+```
+
+```{python}
+x = np.array([[-2.0, -1.0, 0.0], [0.0, 1.0, 2.0]], dtype=float)
+print("Test data is:")
+print(x)
+print("\nOutput of relu is:")
+print(relu(x))
+```
+
+```{python}
+# Check the output of your function
+x = np.array([[-1000.0, -1.0, 0.0], [0.0, 1.0, 1000.0]], dtype=float)
+print("Test data is:")
+print(x)
+print("\nOutput of sigmoid is:")
+print(sigmoid(x))
+```
+
+Now we build our own dense function:
+
+- Weights are initialized with a random key.
+- The shape of the weights (num_rows, num_cols) should equal the number of columns in the input data (this is in the last column) and the number of units respectively.
+    - The number of rows in the weight matrix should equal the number of columns in the input data `x`.  Since `x` may have 2 dimensions if it represents a single training example (row, col), or three dimensions (batch_size, row, col), get the last dimension from the tuple that holds the dimensions of x.
+    - The number of columns in the weight matrix is the number of units chosen for that dense layer.
+- The values generated should have a mean of 0 and standard deviation of `stdev`.
+    - To initialize random weights, a random generator is created using `random_generator = np.random.default_rng(seed=random_seed)`. This part is implemented for you. You will use `random_generator.normal(...)` to create your random weights. Check [here](https://numpy.org/doc/stable/reference/random/generator.html) how the random generator works.
+    - Please don't change the `random_seed`, so that the results are reproducible for testing (and you can be fairly graded).
+
+Implement the `forward` function of the Dense class.
+- The forward function multiplies the input to the layer (`x`) by the weight matrix (`W`)
+
+$$\mathrm{forward}(\mathbf{x},\mathbf{W}) = \mathbf{xW} $$
+
+- You can use `numpy.dot` to perform the matrix multiplication.
+
+```{python}
+class Dense():
+    """
+    A dense (fully-connected) layer.
+    """
+
+    # Please implement '__init__'
+    def __init__(self, n_units, input_shape, activation, stdev=0.1, random_seed=42):
+
+        # Set the number of units in this layer
+        self.n_units = n_units
+        # Set the random key for initializing weights
+        self.random_generator = np.random.default_rng(seed=random_seed)
+        self.activation = activation
+
+        ### START CODE HERE ###
+
+        # Generate the weight matrix from a normal distribution and standard deviation of 'stdev'
+        # Set the size of the matrix w
+        w = self.random_generator.normal(scale=stdev, size = (input_shape[-1], self.n_units))
+
+        ### END CODE HERE ##
+
+        self.weights = w
+
+
+    def __call__(self, x):
+        return self.forward(x)
+
+
+    # Please implement 'forward()'
+    def forward(self, x):
+
+        ### START CODE HERE ###
+
+        # Matrix multiply x and the weight matrix
+        dense = np.dot(x, self.weights)
+        # Apply the activation function
+        dense = self.activation(dense)
+
+        ### END CODE HERE ###
+        return dense
+```
+
+We test our dense layer to compute the forward propagation:
+
+```{python}
+z = np.array([[2.0, 7.0, 25.0]]) # input array
+
+# Testing your Dense layer
+dense_layer = Dense(n_units=10, input_shape=z.shape, activation=relu)  #sets  number of units in dense layer
+
+print("Weights are:\n",dense_layer.weights) #Returns randomly generated weights
+print("Foward function output is:", dense_layer(z)) # Returns multiplied values of units and weights
+```
+
+And finally we implement our Model:
+
+![](images/nn.png)
+
+```{python}
+def create_model(num_words, embedding_dim, max_len):
+    """
+    Creates a text classifier model
+
+    Args:
+        num_words (int): size of the vocabulary for the Embedding layer input
+        embedding_dim (int): dimensionality of the Embedding layer output
+        max_len (int): length of the input sequences
+
+    Returns:
+        model (tf.keras Model): the text classifier model
+    """
+
+    tf.random.set_seed(123)
+
+    ### START CODE HERE
+    model = tf.keras.Sequential([
+        tf.keras.layers.Embedding(input_dim=num_words, output_dim=embedding_dim, input_length=max_len),
+        tf.keras.layers.GlobalAveragePooling1D(),
+        tf.keras.layers.Dense(units=1, activation='sigmoid')
+    ])
+
+    model.compile(loss='binary_crossentropy',
+                  optimizer='adam',
+                  metrics=['accuracy'])
+
+    ### END CODE HERE
+
+    return model
+
+model = create_model(num_words=num_words, embedding_dim=16, max_len=max_len)
+model
+
+```
+
+We can now train our model:
+
+```{python}
+
+train_x_padded = [padded_sequence(x, vocab, max_len) for x in train_x]
+val_x_padded = [padded_sequence(x, vocab, max_len) for x in val_x]
+
+
+train_x_prepared = np.array(train_x_padded)
+val_x_prepared = np.array(val_x_padded)
+
+train_y_prepared = np.array(train_y)
+val_y_prepared = np.array(val_y)
+
+print('The data is prepared for training!\n')
+
+# Fit the model
+print('Training:')
+history = model.fit(train_x_prepared, train_y_prepared, epochs=20, validation_data=(val_x_prepared, val_y_prepared))
+```
+
+```{python}
+def plot_metrics(history, metric):
+    plt.plot(history.history[metric])
+    plt.plot(history.history[f'val_{metric}'])
+    plt.xlabel("Epochs")
+    plt.ylabel(metric.title())
+    plt.legend([metric, f'val_{metric}'])
+    plt.show()
+
+plot_metrics(history, "accuracy")
+plot_metrics(history, "loss")
+```
+
+We can write a small predict function as follows:
+
+```{python}
+def get_prediction_from_tweet(tweet, model, vocab, max_len):
+    tweet = process_tweet(tweet)
+    tweet = padded_sequence(tweet, vocab, max_len)
+    tweet = np.array([tweet])
+
+    prediction = model.predict(tweet, verbose=False)
+
+    return prediction[0][0]
+```
+
+And predict in an unseen tweet:
+
+```{python}
+unseen_tweet = '@DLAI @NLP_team_dlai OMG!!! what a daaay, wow, wow. This AsSiGnMeNt was gr8.'
+
+prediction_unseen = get_prediction_from_tweet(unseen_tweet, model, vocab, max_len)
+print(f"Model prediction on unseen tweet: {prediction_unseen}")
+```
+
+Finally we can visualize our embeddings:
+
+```{python}
+# Get the embedding layer
+embeddings_layer = model.layers[0]
+
+# Get the weights of the embedding layer
+embeddings = embeddings_layer.get_weights()[0]
+
+print(f"Weights of embedding layer have shape: {embeddings.shape}")
+
+pca = PCA(n_components=2)
+
+# Dimensionality reduction of the word embeddings
+embeddings_2D = pca.fit_transform(embeddings)
+
+#Selection of negative and positive words
+neg_words = ['bad', 'hurt', 'sad', 'hate', 'worst']
+pos_words = ['best', 'good', 'nice', 'love', 'better', ':)']
+
+#Index of each selected word
+neg_n = [vocab[w] for w in neg_words]
+pos_n = [vocab[w] for w in pos_words]
+
+plt.figure()
+
+#Scatter plot for negative words
+plt.scatter(embeddings_2D[neg_n][:,0], embeddings_2D[neg_n][:,1], color = 'r')
+for i, txt in enumerate(neg_words):
+    plt.annotate(txt, (embeddings_2D[neg_n][i,0], embeddings_2D[neg_n][i,1]))
+
+#Scatter plot for positive words
+plt.scatter(embeddings_2D[pos_n][:,0], embeddings_2D[pos_n][:,1], color = 'g')
+for i, txt in enumerate(pos_words):
+    plt.annotate(txt,(embeddings_2D[pos_n][i,0], embeddings_2D[pos_n][i,1]))
+
+plt.title('Word embeddings in 2d')
+
+plt.show()
+```
+
+# Traditional language models
+
+Traditional language models make use of probabilities to help identify which sentence is most likely to take place.
+
+![](images/traditional-language-models.png)
+
+In the example above, the second sentence is the one that is most likely to take place as it has the highest probability of happening. To compute the probabilities, you can do the following:
+
+![](images/trigrams-example.png)
+
+Large N-grams capture dependencies between distant words and need a lot of space and RAM. Hence, we resort to using different types of alternatives.
+
+# Advantages of RNNs
+
+Previously, we tried using traditional language models, but it turns out they took a lot of space and RAM.  For example, in the sentence below:
+
+![](images/trigram-problems.png)
+
+An N-gram (trigram) would only look at "did not" and would try to complete the sentence from there. As a result, the model will not be able to see the beginning of the sentence "I called her but she". Probably the most likely word is have after "did not". RNNs help us solve this problem by being able to track dependencies that are much further apart from each other. As the RNN makes its way through a text corpus, it picks up some information as follows:
+
+![](images/rnn-advantage-1.png)
+
+Note that as you feed in more information into the model, the previous word's retention gets weaker, but it is still there. Look at the orange rectangle above and see how it becomes smaller as you make your way through the text. This shows that your model is capable of capturing dependencies and remembers a previous word although it is at the beginning of a sentence or paragraph. Another advantage of RNNs is that a lot of the computation shares parameters.
+
+
+## Applications of RNNs
+
+RNNs could be used in a variety of tasks ranging from machine translation to caption generation. There are many ways to implement an RNN model:
+
+- One to One: given some scores of a championship, you can predict the winner.
+
+![](images/one-to-one.png)
+
+
+- One to Many: given an image, you can predict what the caption is going to be.
+
+![](images/one-to-many.png)
+
+
+- Many to One: given a tweet, you can predict the sentiment of that tweet.
+
+![](images/many-to-one.png)
+
+- Many to Many: given an english sentence, you can translate it to its German equivalent.
+
+![](images/many-to-many.png)
+
+In the next video, you will see the math in simple RNNs.
+
+## Math in Simple RNNs
+
+It is best to explain the math behind a simple RNN with a diagram:
+
+![](images/rnn-math-1.png)
+
+Note that:
+
+$h^{<t>} = g(W_{h}[h^{<t-1>}, x^{t}]+b_h)$
+
+Is the same as multiplying $W_{hh}$ by h and $W_{hx}$ by x. In other words, you can concatenate it as follows:
+
+$h^{<t>} = g(W_{hh}h^{<t-1>} \quad W_{hx}x^{<t>} +b_h)$
+
+The difference between the formulas is that in the first case you concatenate the matrices together and perform the multiplication only once, while in the second case you perform two separate multiplications and then sum them. More specifically:
+
+- $W_{h}$ in the first formula denotes the *horizontal* concatenation of weight matrices $W_{hh}$ and $W_{hx}$ from the second formula.
+
+- $W_{h}$ in the first formula is then multiplied by $[h^{<t-1>}, x^{<t>}]$, another concatenation of parameters from the second formula but this time in a different direction, i.e *vertical*! In the second formula the two (non-concatenated) matrices are multiplied by its own respective parameter vector.
+
+For predicting at each time step you use:
+
+$y^{<t>} = g(W_{yh}h^{<t>} + b_y)$
+
+Note that when you train an RNN you end up training $W_{hh}, W_{hx}, W_{yh}, b_{h}, b_{y}$.
+
+![](images/rnn-math-2.png)
