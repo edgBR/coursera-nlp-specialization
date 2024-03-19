@@ -34,11 +34,11 @@ Note, that we add zeros for padding to match the size of the longest tweet.
 
 A neural network in the setup you can see above can only process one such tweet at a time. In order to make training more efficient (faster) you want to process many tweets in parallel. You achieve this by putting many tweets together into a matrix and then passing this matrix (rather than individual tweets) through the neural network. Then the neural network can perform its computations on all tweets at the same time.
 
-# Dense Layers and ReLU layers
+## Dense Layers and ReLU layers
 
 The Dense layer is the computation of the inner product between a set of trainable weights (weight matrix) and an input vector.  The visualization of the dense layer can be seen in the image below.
 
-![](images/dense-layers.png)
+![](images/dense-layer.png)
 
 The orange box in the image above shows the dense layer. An activation layer is the set of blue nodes shown with the orange box in the image below. Concretely one of the most commonly used activation layers is the rectified linear unit (ReLU).
 
@@ -273,7 +273,7 @@ def sigmoid(x):
 ```
 
 ```{python}
-x = np.array([[-2.0, -1.0, 0.0], [0.0, 1.0, 2.0]], dtype=float)
+x = np.array([[-2.0, -1.0, 0.0], [0.0, 1.0, 2.0]], dtype=np.float32)
 print("Test data is:")
 print(x)
 print("\nOutput of relu is:")
@@ -282,7 +282,7 @@ print(relu(x))
 
 ```{python}
 # Check the output of your function
-x = np.array([[-1000.0, -1.0, 0.0], [0.0, 1.0, 1000.0]], dtype=float)
+x = np.array([[-1000.0, -1.0, 0.0], [0.0, 1.0, 1000.0]], dtype=np.float32)
 print("Test data is:")
 print(x)
 print("\nOutput of sigmoid is:")
@@ -507,7 +507,7 @@ Traditional language models make use of probabilities to help identify which sen
 
 In the example above, the second sentence is the one that is most likely to take place as it has the highest probability of happening. To compute the probabilities, you can do the following:
 
-![](images/trigrams-example.png)
+![](images/tri-grams-example.png)
 
 Large N-grams capture dependencies between distant words and need a lot of space and RAM. Hence, we resort to using different types of alternatives.
 
@@ -575,3 +575,391 @@ $y^{<t>} = g(W_{yh}h^{<t>} + b_y)$
 Note that when you train an RNN you end up training $W_{hh}, W_{hx}, W_{yh}, b_{h}, b_{y}$.
 
 ![](images/rnn-math-2.png)
+
+Lets look to some python examples. To calculate $W_{hh}$ we will use horizontal concatenation. Which mathematically is expressed as:
+
+$W_h = \left [ W_{hh} \ | \ W_{hx} \right ]$
+
+
+```{python}
+import numpy as np
+w_hh = np.full((3, 2), 1)  # illustration purposes only, returns an array of size 3x2 filled with all 1s
+w_hx = np.full((3, 3), 9)
+
+
+### START CODE HERE ###
+# Try using some random initializations, though it will obfuscate the join. eg: uncomment these lines
+w_hh = np.random.standard_normal((3,2))
+w_hx = np.random.standard_normal((3,3))
+### END CODE HERE ###
+
+print("-- Data --\n")
+print("w_hh :")
+print(w_hh)
+print("w_hh shape :", w_hh.shape, "\n")
+print("w_hx :")
+print(w_hx)
+print("w_hx shape :", w_hx.shape, "\n")
+
+# Joining the arrays
+print("-- Joining --\n")
+# Option 1: concatenate - horizontal
+w_h1 = np.concatenate((w_hh, w_hx), axis=1)
+print("option 1 : concatenate\n")
+print("w_h :")
+print(w_h1)
+print("w_h shape :", w_h1.shape, "\n")
+
+# Option 2: hstack
+w_h2 = np.hstack((w_hh, w_hx))
+print("option 2 : hstack\n")
+print("w_h :")
+print(w_h2)
+print("w_h shape :", w_h2.shape)
+```
+
+Joining along a horizontal boundary is called a vertical concatenation or vertical stack. Visually it looks like this:
+
+$[h^{<t-1>},x^{<t>}] = \left[ \frac{h^{<t-1>}}{x^{<t>}} \right]$
+
+
+```{python}
+# Create some more dummy data
+h_t_prev = np.full((2, 1), 1)  # illustration purposes only, returns an array of size 2x1 filled with all 1s
+x_t = np.full((3, 1), 9)       # illustration purposes only, returns an array of size 3x1 filled with all 9s
+
+# Try using some random initializations, though it will obfuscate the join. eg: uncomment these lines
+
+### START CODE HERE ###
+# h_t_prev = np.random.standard_normal((2,1))
+# x_t = np.random.standard_normal((3,1))
+### END CODE HERE ###
+
+print("-- Data --\n")
+print("h_t_prev :")
+print(h_t_prev)
+print("h_t_prev shape :", h_t_prev.shape, "\n")
+print("x_t :")
+print(x_t)
+print("x_t shape :", x_t.shape, "\n")
+
+# Joining the arrays
+print("-- Joining --\n")
+
+# Option 1: concatenate - vertical
+ax_1 = np.concatenate(
+    (h_t_prev, x_t), axis=0
+)  # note the difference in axis parameter vs earlier
+print("option 1 : concatenate\n")
+print("ax_1 :")
+print(ax_1)
+print("ax_1 shape :", ax_1.shape, "\n")
+
+# Option 2: vstack
+ax_2 = np.vstack((h_t_prev, x_t))
+print("option 2 : vstack\n")
+print("ax_2 :")
+print(ax_2)
+print("ax_2 shape :", ax_2.shape)
+```
+
+Now we try to verify the formulas:
+
+__Formula 1:__ $h^{<t>}=g(W_{h}[h^{<t-1>},x^{<t>}] + b_h)$
+
+__Formula 2:__ $h^{<t>}=g(W_{hh}h^{<t-1>} + W_{hx}x^{<t>} + b_h)$
+
+That is ensuring that:
+
+
+$W_{h}[h^{<t-1>},x^{<t>}] \quad \Leftrightarrow \quad W_{hh}h^{<t-1>} + W_{hx}x^{<t>} $
+
+Are interchangeable.
+
+
+```{python}
+
+w_hh = np.full((3, 2), 1)  # returns an array of size 3x2 filled with all 1s
+w_hx = np.full((3, 3), 9)  # returns an array of size 3x3 filled with all 9s
+h_t_prev = np.full((2, 1), 1)  # returns an array of size 2x1 filled with all 1s
+x_t = np.full((3, 1), 9)       # returns an array of size 3x1 filled with all 9s
+
+
+# If you want to randomize the values, uncomment the next 4 lines
+
+# w_hh = np.random.standard_normal((3,2))
+# w_hx = np.random.standard_normal((3,3))
+# h_t_prev = np.random.standard_normal((2,1))
+# x_t = np.random.standard_normal((3,1))
+
+# Results
+print("-- Results --")
+# Formula 1
+stack_1 = np.hstack((w_hh, w_hx))
+stack_2 = np.vstack((h_t_prev, x_t))
+
+print("\nFormula 1")
+print("Term1:\n",stack_1)
+print("Term2:\n",stack_2)
+formula_1 = np.matmul(np.hstack((w_hh, w_hx)), np.vstack((h_t_prev, x_t)))
+print("Output:")
+print(formula_1)
+
+# Formula 2
+mul_1 = np.matmul(w_hh, h_t_prev)
+mul_2 = np.matmul(w_hx, x_t)
+print("\nFormula 2")
+print("Term1:\n",mul_1)
+print("Term2:\n",mul_2)
+
+formula_2 = np.matmul(w_hh, h_t_prev) + np.matmul(w_hx, x_t)
+print("\nOutput:")
+print(formula_2, "\n")
+
+# Verification
+# np.allclose - to check if two arrays are elementwise equal upto certain tolerance, here
+# https://numpy.org/doc/stable/reference/generated/numpy.allclose.html
+
+print("-- Verify --")
+print("Results are the same :", np.allclose(formula_1, formula_2))
+
+### START CODE HERE ###
+# Try adding a sigmoid activation function and bias term as a final check
+# Activation
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+# Bias and check
+b = np.random.standard_normal((formula_1.shape[0],1))
+print("Formula 1 Output:\n",sigmoid(formula_1+b))
+print("Formula 2 Output:\n",sigmoid(formula_2+b))
+
+all_close = np.allclose(sigmoid(formula_1+b), sigmoid(formula_2+b))
+print("Results after activation are the same :",all_close)
+### END CODE HERE ###
+```
+
+
+## Cost Functions for RNNs:
+
+The cost function used in an RNN is the cross entropy loss. If you were to visualize it:
+
+![](images/k-classes-cross-entropy.png)
+
+
+You are basically summing over the all the classes and then multiplying $y_j$ times $logy_{j}^{\hat}$. If you were to compute the loss over several time steps, use the following formula:
+
+$J=\frac{1}{T}\sum_{t=1}^T\sum_{j=1}^K y_{j}^{<t>} logy_{j}^{\hat}$
+
+## Implementation notes
+
+Scan functions which are just like abstract RNNs, and they allow for faster computation. The scan function is designed to take a function fn and apply it to all of the elements from the beginning to the end in the list elems. Initializer is an optional variable that could be used in the first computation of fn.
+
+![](images/scan-function.png)
+
+## Gated Recurrent Units
+
+One important difference is that GRUs work in a way that allows relevant information to be kept in the hidden state even over long sequences. For example, with a GRU, you'll be able to train a model that takes the sentence; ants are really interesting, blank, are everywhere, and easily predict the word, they, to fill in the blank because the GRU learn to keep the information about the subject, in this case, whether it is plural or singular in the hidden states.
+
+Gated recurrent units are very similar to vanilla RNNs, except that they have a "relevance" and "update" gate that allow the model to update and get relevant information. I personally find it easier to understand by looking at the formulas:
+
+![](images/gru.png)
+
+
+To the left, you have the diagram and equations for a simple RNN. To the right, we explain the GRU. Note that we add 3 layers before computing h and y.
+
+The first gate $\gamma_{u}$ allows you to decide how much you want to update the weights by. The second gate $\gamma_{r}$ helps you find a relevance score. You can compute the new $h$ by using the relevance gate. Finally you can compute h, using the update gate. GRUs “decide” how to update the hidden state. GRUs help preserve important information.
+
+![](images/gru-equations.png)
+
+To clarify the implementation of the previous concepts (GRUs and RNN) we will write as follows the forward method for RNNs and GRUs using numpy.
+
+
+```{python}
+import numpy as np
+from numpy import random
+from time import perf_counter
+import tensorflow as tf
+
+def sigmoid(x): # Sigmoid function
+    return 1.0 / (1.0 + np.exp(-x))
+```
+
+
+```{python}
+random.seed(10)                 # Random seed, so your results match ours
+emb = 128                       # Embedding size
+T = 256                         # Length of sequence
+h_dim = 16                      # Hidden state dimension
+h_0 = np.zeros((h_dim, 1))      # Initial hidden state
+
+# Random initialization of weights (w1, w2, w3) and biases (b1, b2, b3)
+w1 = random.standard_normal((h_dim, emb + h_dim))
+w2 = random.standard_normal((h_dim, emb + h_dim))
+w3 = random.standard_normal((h_dim, emb + h_dim))
+b1 = random.standard_normal((h_dim, 1))
+b2 = random.standard_normal((h_dim, 1))
+b3 = random.standard_normal((h_dim, 1))
+# Random initialization of input X
+# Note that you add the third dimension (1) to achieve the batch representation.
+X = random.standard_normal((T, emb, 1))
+
+# Define the lists of weights as you will need them for the two different layers
+weights_vanilla = [w1, b1]
+weights_GRU = [w1.copy(), w2, w3, b1.copy(), b2, b3]
+```
+
+The vanilla RNN cell is quite straight forward. Its most general structure is presented in the next figure:
+
+![](images/rnn-math-2.png)
+
+As you saw in the lecture videos and in the other lab, the computations made in a vanilla RNN cell are equivalent to the following equations:
+
+$$
+\begin{equation}
+h^{<t>}=g(W_{h}[h^{<t-1>},x^{<t>}] + b_h)
+\label{eq: htRNN}
+\end{equation}
+
+\begin{equation}
+\hat{y}^{<t>}=g(W_{yh}h^{<t>} + b_y)
+\label{eq: ytRNN}
+\end{equation}
+$$
+
+Where $[h^{<t-1>},x^{<t>}]$ means that $h^{<t-1>}$ and $x^{<t>}$ are concatenated together. In the next cell you have the implementation of the forward method for a vanilla RNN.
+
+
+```{python}
+def forward_V_RNN(inputs, weights): # Forward propagation for a a single vanilla RNN cell
+    x, h_t = inputs
+
+    # weights.
+    wh, bh = weights
+
+    # new hidden state
+    h_t = np.dot(wh, np.concatenate([h_t, x])) + bh
+    h_t = sigmoid(h_t)
+
+    # We avoid implementation of y for clarity
+    y = h_t ## or activation function is just [[1]*len(h_t)]
+
+    return y, h_t
+```
+
+Now the forward pass for GRU:
+
+
+```{python}
+def forward_GRU(inputs, weights): # Forward propagation for a single GRU cell
+    x, h_t = inputs
+
+    # weights.
+    wu, wr, wc, bu, br, bc = weights
+
+    # Update gate
+    u = np.dot(wu, np.concatenate([h_t, x])) + bu
+    u = sigmoid(u)
+
+    # Relevance gate
+    r = np.dot(wr, np.concatenate([h_t, x])) + br
+    r = sigmoid(r)
+
+    # Candidate hidden state
+    c = np.dot(wc, np.concatenate([r * h_t, x])) + bc
+    c = np.tanh(c)
+
+    # New Hidden state h_t
+    h_t = u * c + (1 - u) * h_t
+
+    # We avoid implementation of y for clarity
+    y = h_t
+
+    return y, h_t
+```
+
+Now we implement the scan function that we will call recurrently:
+
+
+```{python}
+def scan(fn, elems, weights, h_0): # Forward propagation for RNNs
+    h_t = h_0
+    ys = []
+
+    for x in elems:
+        y, h_t = fn([x, h_t], weights)
+        ys.append(y)
+
+    return ys, h_t
+```
+
+We can see also that after running all forward passess the output dimension matches what we expected (a sequence lenght of 256) characters.
+
+```{python}
+ys, h_T = scan(forward_V_RNN, X, weights_vanilla, h_0)
+
+print(f"Length of ys: {len(ys)}")
+print(f"Shape of each y within ys: {ys[0].shape}")
+print(f"Shape of h_T: {h_T.shape}")
+```
+
+Now if we check the performance of GRU vs RNN:
+
+
+```{python}
+# vanilla RNNs
+tic = perf_counter()
+ys, h_T = scan(forward_V_RNN, X, weights_vanilla, h_0)
+toc = perf_counter()
+RNN_time=(toc-tic)*1000
+print (f"It took {RNN_time:.2f}ms to run the forward method for the vanilla RNN.")
+
+# GRUs
+tic = perf_counter()
+ys, h_T = scan(forward_GRU, X, weights_GRU, h_0)
+toc = perf_counter()
+GRU_time=(toc-tic)*1000
+print (f"It took {GRU_time:.2f}ms to run the forward method for the GRU.")
+```
+
+## GRU Tensorflow implementation:
+
+You will use the `Sequential` model using some `GRU` layers. You should already be familiar with the sequential model and with the Dense layers. In addition, you will use GRU layers in this notebook. Below you can find some links to the documentation and a short description.
+   - [`Sequential`](https://www.tensorflow.org/guide/keras/sequential_model) A Sequential model is appropriate for a plain stack of layers where each layer has exactly one input tensor and one output tensor.
+   - [`Dense`](https://www.tensorflow.org/api_docs/python/tf/keras/layers/Dense) A regular fully connected layer
+   - [`GRU`](https://www.tensorflow.org/api_docs/python/tf/keras/layers/GRU) The GRU (gated recurrent unit) layer. The hidden state dimension should be specified (the syntax is the same as for `Dense`). By default it does not return a sequence, but only the output of the last unit. If you want to stack two consecutive GRU layers, you need the first one to output a sequence, which you can achieve by setting the parameter `return_sequences` to True. If you are further interested in similar layers, you can also check out the [`RNN`](https://www.tensorflow.org/api_docs/python/tf/keras/layers/RNN), [`LSTM`](https://www.tensorflow.org/api_docs/python/tf/keras/layers/LSTM) and [`Bidirectional`](https://www.tensorflow.org/api_docs/python/tf/keras/layers/Bidirectional). If you want to use a RNN or LSTM instead of GRU in the code below, simply change the layer name, no other change in the syntax is needed.
+
+Putting everything together the GRU model will look like this:
+
+
+```{python}
+model_GRU = tf.keras.Sequential([
+    tf.keras.layers.GRU(256, return_sequences=True, name='GRU_1_returns_seq'),
+    tf.keras.layers.GRU(128, return_sequences=True, name='GRU_2_returns_seq'),
+    tf.keras.layers.GRU(64, name='GRU_3_returns_last_only'),
+    tf.keras.layers.Dense(10)
+])
+```
+
+
+```{python}
+# Remember these three numbers and follow them further through the notebook
+batch_size = 60
+sequence_length = 50
+word_vector_length = 40
+
+input_data = tf.random.normal([batch_size, sequence_length, word_vector_length])
+
+# Pass the data through the network
+prediction = model_GRU(input_data)
+
+# Show the summary of the model
+model_GRU.summary()
+```
+
+Now you can inspect the numbers in the `Output Shape` column. Note that all the numbers for parameters are distinct (each number is different), so you can more easily inspect what is going on (typically the batch size would be a power of 2, but here we choose it to be 60, just to be distinct from other numbers).
+ 1. You can see that the `word_vector_length` (originally set to 40) which represents the word embedding dimension is already being changed to 256 in the first row. In other words, the model's first GRU layer takes the original 40-dimensional word vectors and transforms them into its own 256-dimensional representations.
+ 2. Next you can look at the `sequence_length` (originally set to 50). The sequence length propagates through the model in the first two layers and then disappears. Note that these are the two GRU layers that return sequences, while the last GRU layer does not return a sequence, but only the output from the last cell, thus one dimension disappears from the model.
+ 3. Lastly have a look at the `batch_size` (originally set to 60), which propagates through the whole model (which makes sense, right?).
+
+Now if you try to pass data of different shape through the network, it might be allowed in some cases, but not in others. Concretely the only parameter that you can not tune in this setup is the word vector lenght, which make sense if you thing that the weight matrixes (embeddings) are defined using this parameter. If we change the lenght of the word vector the GRU layer can not compute a multiplication of matrixes of incompatible sizes.
