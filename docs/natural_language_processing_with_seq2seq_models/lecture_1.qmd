@@ -963,3 +963,22 @@ Now you can inspect the numbers in the `Output Shape` column. Note that all the 
  3. Lastly have a look at the `batch_size` (originally set to 60), which propagates through the whole model (which makes sense, right?).
 
 Now if you try to pass data of different shape through the network, it might be allowed in some cases, but not in others. Concretely the only parameter that you can not tune in this setup is the word vector lenght, which make sense if you thing that the weight matrixes (embeddings) are defined using this parameter. If we change the lenght of the word vector the GRU layer can not compute a multiplication of matrixes of incompatible sizes.
+
+## Deep and Bi-directional RNNs
+
+
+Deep recurrent neural networks are useful because they allow you to capture dependencies that you could not have otherwise captured using shallow RNNs. To illustrate the importance of bidirectional RNNs, take the following example. I was trying really hard to get a hold of blank. Louise finally answered when I was about to give up. As a clever human, you would able to fill in the blank without having to think very hard. An RNN that's propagates information from the beginning to the end of sequences, would be able to make a prediction tool.
+
+![](images/bi-directional-rnn-1.png)
+
+It would take the words before the blank as inputs and do its best to predict the missing word. However, because Louise doesn't appear until the beginning of the next sentence, it would have to guess between her, him and them.
+
+Bidirectional RNNs work in much the same way that simple RNNs do. They take an input sequence x and make the predictions y hat. In the RNNs I showed you earlier, the information flows from the beginning to the end of the sequence. However, you could have another architecture where the information flowed from the end to the beginning. Just imagine going from the future to the present instead, when information flows in both directions, that's a bidirectional RNN.
+
+![](images/bi-directional-rnn-2.png)
+
+In order to make a prediction  $\hat{y}$ you will use the hidden states from both directions and combine them to make one hidden state, you can then proceed as you would with a simple vanilla RNN. When implementing Deep RNNs, you would compute the following.
+
+![](images/bi-directional-rnn-3.png)
+
+Note that at layer l, you are using the input from the bottom $a^{[l-1]}$ and the hidden state $h^l$. That allows you to get your new h, and then to get your new a, you will train another weight matrix $W_{a}$ which you will multiply by the corresponding h add the bias and then run it tourgh an activation layer.
