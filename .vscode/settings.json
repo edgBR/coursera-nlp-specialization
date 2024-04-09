@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./docs/natural_language_processing_with_seq2seq_models"
+    ]
+}

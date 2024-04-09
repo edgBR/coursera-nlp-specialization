@@ -1,0 +1,29 @@
+---
+title: "Neural Networks for Sentiminent Analysis"
+jupyter: "nlp-python-kernel"
+format:
+#   html:
+#     toc: true
+#     toc-depth: 3
+#     toc-location: left
+#     number-sections: true
+#     number-depth: 3
+#     html-math-method: katex
+#     css: styles.css
+  gfm:
+      html-math-method: katex
+      toc: true
+      toc-depth: 3
+      number-sections: true
+      number-depth: 3
+---
+
+\newpage
+
+# Introduction
+
+Named entity recognition or NER for short which is a subtask of information extraction that locates and classifies named entities and text. The named entities could be organizations persons, locations, times. For example, if you look at the sentence the French people are visiting Morocco for Christmas. You will see that the word is a geopolitical entity, Morocco is a geographic entity and Christmas is a time indicator.
+
+## RNNs and Vanishing Gradients
+
+ The way plane or vanilla RNNs model sequences work is by recalling information from the immediate past, allowing you to capture dependencies to a certain degree. They're also relatively lightweight compared to the other n-gram models, taking up less space and RAM
