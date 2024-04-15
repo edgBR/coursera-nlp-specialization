@@ -26,4 +26,222 @@ Named entity recognition or NER for short which is a subtask of information extr
 
 ## RNNs and Vanishing Gradients
 
- The way plane or vanilla RNNs model sequences work is by recalling information from the immediate past, allowing you to capture dependencies to a certain degree. They're also relatively lightweight compared to the other n-gram models, taking up less space and RAM
+The way plane or vanilla RNNs model sequences work is by recalling information from the immediate past, allowing you to capture dependencies to a certain degree. They're also relatively lightweight compared to the other n-gram models, taking up less space and RAM. But there are downsides. The RNNs architecture can struggle to capture long-term dependencies and RNNs are prone to vanishing and exploding gradients, both of which can cause your model training to fail. Vanishing and exploding gradients are a problem that can arise due to the fact that it's RNNs propagates information from the beginning of the sequence to the end, starting with the first word or the sequence, the hidden value at the far left.
+
+![](images/vanishing-gradients.png)
+
+The first values are computed here. Then as propagates, some of the computed information, takes the second word in the sequence and gets new values. The second values are computed using the older values in orange and then word in green After that, it takes the third word and the propagated values from the first second words and computes and other sets of values from both of those. It continues and a similar way from there. At the final step, the computations contain information from all the words in the sequence and the RNN is able to predict the next word, which in this example is goal.
+
+Note that in an RNN, the information from the first step doesn't have much influence on the outputs. This is why you can see the orange portion from the first step decreasing with each new step. Correspondingly, the computations made at the first step don't have much influence on the cost function either. The gradients are calculated using backpropagation through time, which sounds way more scary than what it really is. As it would simple backpropagation. You just have to apply the chain rule multiple times. Recall that the weights W_h and W_x are the same for each step.
+
+![](images/gradient-lstm.png)
+
+The term inside the sum, the products of partial derivatives is the contribution of hidden states k, so the gradient and the length of the product sequence for each k is proportional to how far the step k is from the place where the loss is computed in this step t.
+
+![](images/gradient-lstm-2.png)
+
+As you look at hidden states that are further away from the place where you're loss is computed, the partial derivative products start to become longer and longer. For instance, the contribution to the gradient of a hidden state that is 10 steps away from step t, you would have to compute a product of 10 terms. Therefore, if the partial derivatives are lower than one, the contribution of the hidden state to the gradients approaches zero as you move further away from the place where the loss is computed (vanishing gradient). Conversely, if the partial derivatives are greater than one, the contribution to the gradient goes to infinity (exploding gradient).
+
+![](images/solution-to-vanishing-exploding-gradients.png)
+
+You can deal with vanishing gradients by initializing your weights to the identity matrix, which carries values of one along the main diagonal and zero everywhere else. Using a ReLU activation. What this essentially does is copy the previous hidden states and information from the current inputs and replace any negative values with zero. This has the effect of encouraging your network to stay close to the values and the identity matrix, which act like ones during matrix multiplication. This method is referred to unsurprisingly as an identity RNN. The identity RNN approach only works for vanishing gradients though, as a derivative of ReLU is equal to 1 for all values greater than zero.
+
+To account for values growing exponentially you can perform gradients clipping. To clip your gradient, simply choose a relevant value that you would clip the gradient to, say 25. Using this technique, any value greater than 25 will be clipped to 25. This serves to limit the magnitude of the gradient. Finally skip connections provide a direct connection to the earlier layers. This effectively skips over the activation functions and adds the value from your initial inputs x to you're outputs or f of x plus x. This way, activations from early layers have more influence over the costs.
+
+## Vanishing gradient demo
+
+Vanilla RNNs are prone to vanishing and exploding gradients when dealing with long sequences. Recall that the gradient with respect to $W_h$ is proportional to a sum of products:
+
+$$
+\frac{\delta L}{\delta W_h} \propto \sum_{1\le k\le t} \left(\prod_{t\ge i>k} \frac{\delta h_i}{\delta h_{i-1}}\right)\frac{\delta h_k}{\delta W_h}
+$$
+
+where, for step $k$ far away from the place where the loss is computed ($t$), the product
+
+$$
+\prod_{t\ge i>k} \frac{\delta h_i}{\delta h_{i-1}}
+$$
+
+can either go to 0 or infinity depending on the values of the partial derivative of the hidden state $\frac{\delta h_i}{\delta h_{i-1}}$. In this ungraded lab, you will take a closer look at the partial derivative of the hidden state, and you will see how gradient problems arise when dealing with long sequences in vanilla RNNs.
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+import ipywidgets as widgets
+from ipywidgets import interact, interactive, fixed, interact_manual
+
+%matplotlib inline
+```
+
+### Partial Derivative
+Recall that the hidden state at step $i$ is defined as:
+
+$$
+h_i= \sigma(W_{hh} h_{i-1} + W_{hx} x_i + b_h)
+$$
+
+where $\sigma$ is an activation function (usually sigmoid). So, you can use the chain rule to get the partial derivative:
+
+$$
+\frac{\delta h_i}{\delta h_{i-1}} = W_{hh}^T \text{diag} (\sigma'(W_{hh} h_{i-1} + W_{hx} x_i + b_h))
+$$
+
+$W_{hh}^T$ is the transpose of the weight matrix, and $\sigma'$ is the gradient of the activation function. The gradient of the activation function is a vector of size equal to the hidden state size, and the $\text{diag}$ converts that vector into a diagonal matrix. You <strong>don't have to worry about the calculus</strong> behind this derivative, and you only need to be familiar with the form it takes.
+
+### Vanishing and Exploding Gradient Conditions
+
+When the product
+
+$$
+
+\prod_{t\ge i > k} \frac{\partial h_i}{\partial h_{i-1}} = \prod_{t\ge i > k} W_{hh}^T \text{diag} (\sigma'(W_{hh} h_{i-1} + W_{hx} x_i + b_h))
+
+$$
+
+approaches 0, you face vanishing gradient problems where the contribution of item $k$ in the sequence is neglected. Conversely, when the product approaches infinity you will face exploding gradients and convergence problems arise. For that product approaching either of those values, two conditions need to be met:
+
+<ol>
+<li> Derivative of the activation function is bounded by some value $\alpha$ </li>
+<li> The absolute value of the largest eigenvalue of the weight matrix $W_{hh}$ is lower than $\frac{1}{\alpha}$ (sufficient condition for vanishing gradient), or greater than $\frac{1}{\alpha}$ (necessary condition for exploding gradient).</li>
+</ol>
+
+### Activation
+
+So let's check the first condition for the sigmoid function. Run the cell below to get an interactive plot of the sigmoid function and its derivative at different points. Feel free to change the argument values to check if the derivative is bounded or not.
+
+
+```{python}
+# Data
+
+### START CODE HERE ###
+x = np.linspace(-6, 6, 100)  # try changing the range of values in the data. eg: (-100,100,1000)
+### END CODE HERE ###
+
+# Activation
+# Interval [0, 1]
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+activations = sigmoid(x)
+
+# Gradient
+# Interval [0, 0.25]
+def sigmoid_gradient(x):
+    return sigmoid(x) * (1 - sigmoid(x))
+
+# Add the tangent line
+def plot_func(x_tan = 0):
+    plt.plot(x, activations)
+    plt.title("Sigmoid Function and Gradient")
+    plt.xlabel("$x$")
+    plt.ylabel("sigmoid($x$)")
+    plt.text(x_tan, sigmoid(x_tan), f"Gradient: {sigmoid_gradient(x_tan):.4f}")
+    plt.xlim((-6,6))
+    plt.ylim((-0.5,1.5))
+    plt.rcParams['figure.figsize'] = [7, 5]
+    y_tan = sigmoid(x_tan)  # y value
+    span = 4 # line span along x axis
+    data_tan = np.linspace(x_tan - span, x_tan + span)  # x values to plot
+    gradient_tan = sigmoid_gradient(x_tan)     # gradient of the tangent
+    tan = y_tan + gradient_tan * (data_tan - x_tan)     # y values to plot
+    plt.plot(x_tan, y_tan, marker="o", color="orange", label=True)  # marker
+    plt.plot(data_tan, tan, linestyle="--", color="orange")         # line
+    plt.show()
+
+interact(plot_func, x_tan = widgets.FloatSlider(value=0,
+                                            min=-6,
+                                            max=6,
+                                            step=0.5))
+```
+
+As you checked, the derivative of the sigmoid function is bounded by $\alpha=\frac{1}{4}$. So vanishing gradient problems will arise for long-term components if the largest eigenvalue of $W_{hh}$ is lower than 4, and exploding gradient problems will happen if the largest eigenvalue is larger than 4.
+
+Let's generate a random checkpoint for an RNN model and assume that the sequences are of length $t=20$:
+
+
+```{python}
+np.random.seed(12345)
+t = 20
+h = np.random.randn(5,t)
+x = np.random.randn(5,t)
+b_h = np.random.randn(5,1)
+W_hx = np.random.randn(5,5)
+```
+
+In the next cell, you will create a random matrix $W_{hh}$ with eigenvalues lower than four.
+
+```{python}
+eig = np.random.rand(5)*4 # Random eigenvalues lower than 4
+Q = np.random.randn(5,5) # Random eigenvectors stacked in matrix Q
+W_hh = Q@np.diag(eig)@np.linalg.inv(Q) #W_hh
+```
+
+Finally, you will define the product function for a determined step $k$
+
+```{python}
+def prod(k):
+    p = 1
+    for i in range(t-1, k-2, -1):
+        p *= W_hh.T@np.diag(sigmoid_gradient(W_hh@h[:,i]+ W_hx@x[:,i] + b_h))
+    return p
+
+product = np.zeros(20)
+
+for k in range(t):
+    product[k] = np.max(prod(k+1))
+
+plt.plot(np.array(range(t))+1, product)
+plt.title("Maximum contribution to the gradient at step $k$");
+plt.xlabel("k");
+plt.ylabel("Maximum contribution");
+plt.xticks(np.array(range(t))+1);
+```
+
+With the largest eigenvalue of the weight matrix  𝑊ℎℎ
+being lower than 4 --with a sigmoid activation function, the contribution of the early items in the sequence to the gradient go to zero. In practice, this will make your RNN rely only upon the most recent items in the series.
+
+### Exploding Gradient with Sigmoid Activation
+
+
+```{python}
+np.random.seed(12345)
+t = 20
+h = np.zeros((5,t))
+x = np.zeros((5,t))
+b_h = np.zeros((5,1))
+W_hx = np.random.randn(5,5)
+eig = 4 + np.random.rand(5)*10 #Random eigenvalues greater than 4
+Q = np.random.randn(5,5) #Random eigenvectors stacked in matrix Q
+W_hh = Q@np.diag(eig)@np.linalg.inv(Q) #W_hh
+```
+
+
+```{python}
+product = np.zeros(20)
+for k in range(t):
+    product[k] = np.max(prod(k+1))
+
+plt.plot(np.array(range(t))+1, product)
+plt.title("Maximum contribution to the gradient at step $k$");
+plt.xlabel("k");
+plt.ylabel("Maximum contribution");
+plt.xticks(np.array(range(t))+1);
+```
+
+With the largest eigenvalue of the weight matrix $W_{hh}$ being greater than 4 --with a sigmoid activation function, the contribution of the early items in the sequence to the gradient goes to infinity. In practice, this will make you face convergence problems during training.
+
+Now you are more familiar with the conditions for vanishing and exploding gradient problems. You should take away that for vanishing gradient it is <strong>sufficient</strong> to satisfy an eigenvalue condition, while for the exploding gradient problem it is <strong>neccesary</strong> but not enough. I used the weight matrix $W_{hh}$ in this discussion, but everything exposed here also applies for $W_{hx}$.
+
+## Introduction to LSTM
+
+The LSTM is a special variety of RNN that was designed to handle entire sequences of data by learning when to remember and went to forget, which is similar to what is done in the GRU. An LSTM is essentially composed of a cell state, which you can think of as its memory. The hidden state where computations are performed during training to decide on what changes to make. An LSTM has multiple gates that transformed the states in the network. The cell state travels through these gates and track inputs as it's arrives, each one plays a part in deciding how much information to pass along and how much leave behind. The series of gates allows the gradients to flow, avoiding the risk of vanishing or exploding gradients
+
+The LSTM allows your model to remember and forget certain inputs. It consists of a cell state and a hidden state with three gates. The gates allow the gradients to flow unchanged. You can think of the three gates as follows:
+
+- Input gate: tells you how much information to input at any time point.
+
+- Forget gate: tells you how much information to forget at any time point.
+
+- Output gate: tells you how much information to pass over at any time point.
+
+![](images/lstm-gates.png)
